@@ -9,9 +9,9 @@ data class UserModuleProgress(
     val userId: UserId,
     val progress: Double,
     val rating: Double?,
-    val mediaCacheUrl: String,
+    val mediaCacheKey: String,
     val startedAt: Timestamp,
-    val completedAt: Timestamp,
+    val completedAt: Timestamp?,
     val createdAt: Timestamp,
     val updatedAt: Timestamp
 )

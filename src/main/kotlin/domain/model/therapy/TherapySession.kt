@@ -12,7 +12,7 @@ data class TherapySession(
     val tagline:String?,
     val moduleCount: Int,
     val avgRating: Double?,
-    val avdCompletionTimeMinutes: Double?,
+    val avgCompletionTimeMinutes: Double?,
     val phqRating: Double?,
     val isPublished: Boolean,
     val createdAt: Timestamp,

@@ -10,8 +10,3 @@ data class Upvote(
     val targetId: String?, // we store the event or postId; mapper will handle relevant conversion based on target
     val createdAt: Timestamp,
 )
-
-enum class UpvoteTargetType{
-    EVENT,
-    POST
-}

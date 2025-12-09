@@ -8,9 +8,10 @@ import com.simbiri.domain.model.common.UserId
 data class EmotionSnapshot(
     val id: EmotionSnapshotId,
     val userId: UserId,
-    val sessionId: SessionId?,
+    val sessionId: SessionId,
     val timestamp: Timestamp,
     val primaryEmotion: EmotionType,
+    val phase: EmotionSnapshotPhase,
     val confidence: Double,
     val rawPayload: String?,
     val createdAt: Timestamp

@@ -16,7 +16,8 @@ data class Module(
     val backgroundAudioUrl: String?,
     val backgroundVideoUrl: String?,
     val backgroundImageUrl: String?,
-    val averageCompletionTimeMinutes: Double?,
+    val avgRating: Double?,
+    val avgCompletionTimeMins: Double?,
     val createdAt: Timestamp,
     val updatedAt: Timestamp,
 )

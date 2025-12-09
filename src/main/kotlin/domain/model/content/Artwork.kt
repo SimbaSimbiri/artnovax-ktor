@@ -15,7 +15,7 @@ data class Artwork(
     val title: String?,
     val description: String?,
     val mediaType: MediaType,
-    val mediaUrl: String, // this will be from AWS S3
+    val assetUrl: String, // this will be from AWS S3
     val thumbnailUrl: String?,
     val isShared: Boolean,
     val createdAt: Timestamp,

@@ -9,5 +9,5 @@ data class ConversationParticipant(
     val userId: UserId,
     val role: ParticipantRole,
     val joinedAt: Timestamp,
-    val leftAt: Timestamp
+    val leftAt: Timestamp?
 )

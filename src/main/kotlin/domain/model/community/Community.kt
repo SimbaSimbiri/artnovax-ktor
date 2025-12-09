@@ -24,8 +24,3 @@ data class Community(
     val createdAt: Timestamp,
     val updatedAt: Timestamp,
 )
-
-enum class JoinPermission{
-    AUTO,
-    APPROVAL
-}
