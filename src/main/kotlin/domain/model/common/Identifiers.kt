@@ -28,5 +28,11 @@ value class PostId(val value: UUID)
 @JvmInline
 value class EmotionSnapshotId(val value: UUID)
 
+@JvmInline
+value class ConversationId(val value: UUID)
+
+@JvmInline
+value class MessageId(val value: UUID)
+
 
 typealias Timestamp = Instant
