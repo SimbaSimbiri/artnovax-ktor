@@ -1,5 +1,6 @@
 package com.simbiri
 
+import com.simbiri.presentation.config.configureRouting
 import io.ktor.server.application.*
 
 fun main(args: Array<String>) {
@@ -7,5 +8,5 @@ fun main(args: Array<String>) {
 }
 
 fun Application.module() {
-
+    configureRouting()
 }
