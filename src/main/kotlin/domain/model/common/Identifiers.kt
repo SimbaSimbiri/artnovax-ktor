@@ -10,4 +10,19 @@ value class UserId(val value: UUID)
 @JvmInline
 value class CommunityId(val value: UUID)
 
+@JvmInline
+value class SessionId(val value: UUID)
+
+@JvmInline
+value class ModuleId(val value: UUID)
+
+@JvmInline
+value class ArtworkId(val value: UUID)
+
+@JvmInline
+value class EventId(val value: UUID)
+
+@JvmInline
+value class PostId(val value: UUID)
+
 typealias Timestamp = Instant
