@@ -8,7 +8,7 @@ import kotlinx.datetime.LocalDate
 data class User(
     val id: UserId,
     val accountName: String,
-    val emailAddress: String?,
+    val emailAddress: String,
     val birthDate: LocalDate,
     val about: String?,
     val tagline: String?,
