@@ -31,3 +31,5 @@ fun User.toResponseDto(): UserDto {
         socialLinks = socialDtos,
     )
 }
+
+fun List<User>.toResponseDto() = map { user -> user.toResponseDto() }

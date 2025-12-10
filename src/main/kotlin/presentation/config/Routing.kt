@@ -2,6 +2,7 @@ package com.simbiri.presentation.config
 
 import com.simbiri.presentation.routes.root
 import com.simbiri.presentation.routes.user.getAllUsers
+import com.simbiri.presentation.routes.user.getUserById
 import io.ktor.server.application.Application
 import io.ktor.server.application.install
 import io.ktor.server.resources.Resources
@@ -16,5 +17,6 @@ fun Application.configureRouting() {
 
         // user calls
         getAllUsers()
+        getUserById()
     }
 }
