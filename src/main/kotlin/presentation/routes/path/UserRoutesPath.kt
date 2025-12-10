@@ -3,7 +3,7 @@ package com.simbiri.presentation.routes.path
 import io.ktor.resources.Resource
 
 @Resource("/users")
-class UserRoutesPath(){
+class UserRoutesPath(val userType: String? = null){
 
     @Resource("{userId}")
     data class ById(

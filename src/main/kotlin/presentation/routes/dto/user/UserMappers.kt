@@ -32,4 +32,4 @@ fun User.toResponseDto(): UserDto {
     )
 }
 
-fun List<User>.toResponseDto() = map { user -> user.toResponseDto() }
+fun List<User>.toResponseDto() = this.map { it.toResponseDto() }
