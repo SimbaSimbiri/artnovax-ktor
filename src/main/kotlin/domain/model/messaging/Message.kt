@@ -9,7 +9,7 @@ data class Message(
     val id: MessageId,
     val conversationId: ConversationId,
     val senderId: UserId,
-    val replyToMessageId: MessageId?,
+    val replyToMessageId: MessageId?, // if the message is replying to a previous message
     val content: String,
     val isSystemMessage: Boolean,
     val isDeleted: Boolean,

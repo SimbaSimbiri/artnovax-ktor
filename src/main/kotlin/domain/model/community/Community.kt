@@ -16,8 +16,8 @@ data class Community(
     val joinPermission: JoinPermission,
     val chatBackgroundUrl: String?,
     val tagline: String,
-    val privateEvents: Boolean,
-    val privatePosts: Boolean,
+    val privateEvents: Boolean, // only users in the community will see broadcasted events
+    val privatePosts: Boolean,  // only users in the community will see posts on their fyp
     val category: String?,
     val approved: Boolean,
     val socialLinks: List<SocialLink>,

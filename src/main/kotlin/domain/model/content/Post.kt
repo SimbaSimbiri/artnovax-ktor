@@ -11,7 +11,7 @@ data class Post(
     val communityId: CommunityId?,
     val creatorId: UserId,
     val artworkId: ArtworkId?, // if the post is sharing an artwork
-    val parentPostId: PostId?, // if we want to maintain a thread
+    val parentPostId: PostId?, // if we want to maintain a thread, very important for user engagement
     val title: String?,
     val caption: String?,
     val upVoteCount: Int,

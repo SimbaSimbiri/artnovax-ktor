@@ -4,7 +4,7 @@ import com.simbiri.domain.model.common.SessionId
 import com.simbiri.domain.model.common.Timestamp
 import com.simbiri.domain.model.common.UserId
 
-data class UserSessionProgress(
+data class UserSession(
     val sessionId: SessionId,
     val userId: UserId,
     val progress: Double,

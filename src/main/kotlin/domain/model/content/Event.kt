@@ -7,7 +7,7 @@ import com.simbiri.domain.model.common.UserId
 
 data class Event(
     val id: EventId,
-    val communityId: CommunityId,
+    val communityId: CommunityId, // event must be from a community, by default everyone will belong to the ArtNovax community
     val creatorId: UserId,
     val title: String,
     val description: String,
@@ -15,9 +15,9 @@ data class Event(
     val startsAt: Timestamp,
     val endsAt: Timestamp,
     val posterImageUrl: String?,
-    val location: String?,
-    val joinLink: String?,
-    val capacity: Int?,
+    val location: String?, // if physical event
+    val joinLink: String?, // if online event
+    val capacity: Int?, // anticipated capacity
     val participantCount: Int,
     val upvotesCount: Int,
     val mediaUrls: List<String>?, // relevant media e.g barcode to scan, previous event pictures
