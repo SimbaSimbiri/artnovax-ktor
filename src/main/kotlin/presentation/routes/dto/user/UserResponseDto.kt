@@ -12,6 +12,7 @@ data class UserResponseDto(
     val profileImageUrl: String?,
     val backgroundImageUrl: String?,
     val tagline: String?,
+    val about: String?,
     val type: Int,
     val isAnonymous: Boolean,
     val isActive: Boolean,

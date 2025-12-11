@@ -7,7 +7,6 @@ import com.simbiri.domain.model.social.SocialPlatformRegistry
 import com.simbiri.domain.model.user.User
 import com.simbiri.domain.model.user.UserType
 import com.simbiri.presentation.routes.dto.social.SocialLinkUpsertDto
-import com.simbiri.presentation.routes.dto.social.toDomain
 import com.simbiri.presentation.routes.dto.social.toResponseDto
 import java.time.Instant
 import java.time.LocalDate
@@ -31,6 +30,7 @@ fun User.toResponseDto(): UserResponseDto {
         profileImageUrl = profileUrl,
         backgroundImageUrl = backgroundUrl,
         tagline = tagline,
+        about= about,
         type = type.code,
         isAnonymous = isAnonymous,
         isActive = isActive,
