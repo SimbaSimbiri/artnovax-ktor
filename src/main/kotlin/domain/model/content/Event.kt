@@ -6,7 +6,7 @@ import com.simbiri.domain.model.common.Timestamp
 import com.simbiri.domain.model.common.UserId
 
 data class Event(
-    val id: EventId,
+    val id: EventId? = null,
     val communityId: CommunityId, // event must be from a community, by default everyone will belong to the ArtNovax community
     val creatorId: UserId,
     val title: String,

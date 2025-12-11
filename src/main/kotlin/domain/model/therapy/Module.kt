@@ -5,7 +5,7 @@ import com.simbiri.domain.model.common.SessionId
 import com.simbiri.domain.model.common.Timestamp
 
 data class Module(
-    val id: ModuleId,
+    val id: ModuleId? = null,
     val sessionId: SessionId,
     val orderIndex: Int, // if it's within a Session recommended for higher pHQ, prioritize AFFIRMATION and BREATHING modules
     val title: String,

@@ -1,14 +1,10 @@
 package com.simbiri.domain.model.content
 
-import com.simbiri.domain.model.common.ArtworkId
-import com.simbiri.domain.model.common.ModuleId
-import com.simbiri.domain.model.common.SessionId
-import com.simbiri.domain.model.common.Timestamp
-import com.simbiri.domain.model.common.UserId
+import com.simbiri.domain.model.common.*
 import com.simbiri.domain.model.therapy.MediaType
 
 data class Artwork(
-    val id: ArtworkId,
+    val id: ArtworkId? = null,
     val userId: UserId,
     val sessionId: SessionId?,
     val moduleId: ModuleId?,

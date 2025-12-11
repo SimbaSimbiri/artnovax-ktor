@@ -4,8 +4,8 @@ import com.simbiri.domain.model.common.SessionId
 import com.simbiri.domain.model.common.Timestamp
 import com.simbiri.domain.model.common.UserId
 
-data class TherapySession(
-    val id: SessionId,
+data class Session(
+    val id: SessionId? = null,
     val ownerId: UserId, // must be restricted to be of userType(3) or above
     val title:String, // e.g. Ubuntu Flow for African themed session with Poems, Bantu Audio e.t.c.
     val description:String,

@@ -3,10 +3,10 @@ package com.simbiri.domain.model.user
 import com.simbiri.domain.model.common.Timestamp
 import com.simbiri.domain.model.common.UserId
 import com.simbiri.domain.model.social.SocialLink
-import kotlinx.datetime.LocalDate
+import java.time.LocalDate
 
 data class User(
-    val id: UserId,
+    val id: UserId? = null,
     val accountName: String,
     val emailAddress: String,
     val birthDate: LocalDate,
@@ -26,5 +26,5 @@ data class User(
     val updatedAt: Timestamp,
 ){
     val canExposeSocialLinks: Boolean
-        get() = type != UserType.REGULAR
+        get() = type == UserType.PSYCHOLOGIST || type == UserType.ADMIN_EXEC || type == UserType.DEV
 }

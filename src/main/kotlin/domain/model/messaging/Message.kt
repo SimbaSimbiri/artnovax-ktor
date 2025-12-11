@@ -6,7 +6,7 @@ import com.simbiri.domain.model.common.Timestamp
 import com.simbiri.domain.model.common.UserId
 
 data class Message(
-    val id: MessageId,
+    val id: MessageId? = null,
     val conversationId: ConversationId,
     val senderId: UserId,
     val replyToMessageId: MessageId?, // if the message is replying to a previous message

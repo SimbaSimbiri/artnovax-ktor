@@ -6,7 +6,7 @@ import com.simbiri.domain.model.common.Timestamp
 import com.simbiri.domain.model.common.UserId
 
 data class Conversation(
-    val id: ConversationId,
+    val id: ConversationId? = null,
     val type: ConversationType, // can be direct, group or community
     val communityId: CommunityId?, // if conversation belongs to a community/group
     val createdBy: UserId,

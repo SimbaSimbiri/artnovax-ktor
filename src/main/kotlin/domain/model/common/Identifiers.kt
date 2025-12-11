@@ -1,7 +1,7 @@
 package com.simbiri.domain.model.common
 
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 
 
 @JvmInline

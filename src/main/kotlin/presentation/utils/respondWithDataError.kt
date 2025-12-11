@@ -1,9 +1,9 @@
 package com.simbiri.presentation.utils
 
 import com.simbiri.domain.util.DataError
-import io.ktor.http.HttpStatusCode
-import io.ktor.server.response.respond
-import io.ktor.server.routing.RoutingContext
+import io.ktor.http.*
+import io.ktor.server.response.*
+import io.ktor.server.routing.*
 
 suspend fun RoutingContext.respondWithDataError(errorType: DataError) {
     when(errorType) {

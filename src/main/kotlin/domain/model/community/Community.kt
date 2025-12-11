@@ -6,7 +6,7 @@ import com.simbiri.domain.model.common.UserId
 import com.simbiri.domain.model.social.SocialLink
 
 data class Community(
-    val id: CommunityId,
+    val id: CommunityId? = null,
     val ownerId: UserId,
     val moderatorId: UserId?,
     val name: String,

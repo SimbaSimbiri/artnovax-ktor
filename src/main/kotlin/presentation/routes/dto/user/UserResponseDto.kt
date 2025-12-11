@@ -1,10 +1,10 @@
 package com.simbiri.presentation.routes.dto.user
 
-import com.simbiri.presentation.routes.dto.social.SocialLinkDto
+import com.simbiri.presentation.routes.dto.social.SocialLinkResponseDto
 import kotlinx.serialization.Serializable
 
 @Serializable
-data class UserDto(
+data class UserResponseDto(
     val id: String,
     val accountName: String,
     val emailAddress: String,
@@ -19,5 +19,5 @@ data class UserDto(
     val emailOptIn: Boolean,
     val createdAt: String,
     val updatedAt: String,
-    val socialLinks: List<SocialLinkDto>,
+    val socialLinks: List<SocialLinkResponseDto>,
 )

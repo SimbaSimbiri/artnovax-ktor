@@ -1,5 +1,6 @@
 package com.simbiri
 
+import com.simbiri.presentation.config.configureKoin
 import com.simbiri.presentation.config.configureLogging
 import com.simbiri.presentation.config.configureRouting
 import com.simbiri.presentation.config.configureSerialization
@@ -10,6 +11,7 @@ fun main(args: Array<String>) {
 }
 
 fun Application.module() {
+    configureKoin()
     configureLogging()
     configureSerialization()
     configureRouting()

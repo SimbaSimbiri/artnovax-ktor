@@ -1,15 +1,16 @@
 package com.simbiri.presentation.config
 
-import com.simbiri.data.repository.UserRepoImpl
+import com.simbiri.domain.repository.UserRepository
 import com.simbiri.presentation.routes.root
 import com.simbiri.presentation.routes.userRoutes
 import io.ktor.server.application.*
 import io.ktor.server.resources.*
 import io.ktor.server.routing.*
+import org.koin.ktor.ext.inject
 
 fun Application.configureRouting() {
     install(Resources)
-    val userRepository = UserRepoImpl()
+    val userRepository: UserRepository by inject()
 
     routing {
         // our welcome page

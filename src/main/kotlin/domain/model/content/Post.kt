@@ -1,13 +1,9 @@
 package com.simbiri.domain.model.content
 
-import com.simbiri.domain.model.common.ArtworkId
-import com.simbiri.domain.model.common.CommunityId
-import com.simbiri.domain.model.common.PostId
-import com.simbiri.domain.model.common.Timestamp
-import com.simbiri.domain.model.common.UserId
+import com.simbiri.domain.model.common.*
 
 data class Post(
-    val id: PostId,
+    val id: PostId? = null,
     val communityId: CommunityId?,
     val creatorId: UserId,
     val artworkId: ArtworkId?, // if the post is sharing an artwork
