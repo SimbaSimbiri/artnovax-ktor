@@ -56,7 +56,7 @@ class UserRepoImpl (private val db: Database) : UserRepository {
                     .selectAll().where { SocialLinkTable.userId inList userIdEntityIds }
                     .toList()
 
-                // 3) Group socials by userId
+                // 3) Group socials by userId and gather them to a value list accessed by a userId key
                 val socialsByUserId: Map<UUID, List<SocialLink>> =
                     socialRows
                         .groupBy { row -> row[SocialLinkTable.userId].value }
@@ -76,6 +76,7 @@ class UserRepoImpl (private val db: Database) : UserRepository {
 
             if (users.isEmpty()) ResultType.Failure(DataError.NotFound)
             else ResultType.Success(users)
+
         } catch (e: Exception) {
             e.printStackTrace()
             ResultType.Failure(DataError.DatabaseError)
@@ -86,7 +87,7 @@ class UserRepoImpl (private val db: Database) : UserRepository {
         if (userId.isNullOrBlank()) {
             return ResultType.Failure(DataError.ValidationError)
         }
-
+        // validate input first before trying to get a specific user
         val uuid = try {
             UUID.fromString(userId)
         } catch (e: IllegalArgumentException) {
@@ -123,6 +124,7 @@ class UserRepoImpl (private val db: Database) : UserRepository {
 
             if (user == null) ResultType.Failure(DataError.NotFound)
             else ResultType.Success(user)
+
         } catch (e: Exception) {
             e.printStackTrace()
             ResultType.Failure(DataError.DatabaseError)
@@ -130,6 +132,7 @@ class UserRepoImpl (private val db: Database) : UserRepository {
     }
 
     override suspend fun upsertUser(userRec: User): ResultType<Unit, DataError> {
+        // revoke upserting a user who is not allowed to expose their social links
         if (!userRec.canExposeSocialLinks && userRec.socialLinks.isNotEmpty()) {
             return ResultType.Failure(DataError.ValidationError)
         }
@@ -143,58 +146,56 @@ class UserRepoImpl (private val db: Database) : UserRepository {
             ResultType.Failure(DataError.DatabaseError)
         }
     }
-
     private fun upsertUserInternal(userRec: User): ResultType<Unit, DataError> {
         val now = Instant.now()
-        val entity = userRec.toEntity(now)   // <- use the mapper here
+        val userEntity = userRec.toEntity(now)
 
         if (userRec.id == null) {
             // INSERT path
             UserTable.insert { row ->
-                row[UserTable.id] = entity.id
-                row[accountName] = entity.accountName
-                row[emailAddress] = entity.emailAddress
-                row[firstName] = entity.firstName
-                row[lastName] = entity.lastName
-                row[birthDate] = entity.birthDate
-                row[about] = entity.about
-                row[tagline] = entity.tagline
-                row[profileUrl] = entity.profileUrl
-                row[backgroundUrl] = entity.backgroundUrl
-                row[userType] = entity.userTypeCode
-                row[emailOptIn] = entity.emailOptIn
-                row[isPrivate] = entity.isPrivate
-                row[isAnonymous] = entity.isAnonymous
-                row[isActive] = entity.isActive
-                row[createdAt] = entity.createdAt
-                row[updatedAt] = entity.updatedAt
+                row[UserTable.id] = userEntity.id
+                row[accountName] = userEntity.accountName
+                row[emailAddress] = userEntity.emailAddress
+                row[firstName] = userEntity.firstName
+                row[lastName] = userEntity.lastName
+                row[birthDate] = userEntity.birthDate
+                row[about] = userEntity.about
+                row[tagline] = userEntity.tagline
+                row[profileUrl] = userEntity.profileUrl
+                row[backgroundUrl] = userEntity.backgroundUrl
+                row[userType] = userEntity.userTypeCode
+                row[emailOptIn] = userEntity.emailOptIn
+                row[isPrivate] = userEntity.isPrivate
+                row[isAnonymous] = userEntity.isAnonymous
+                row[isActive] = userEntity.isActive
+                row[createdAt] = userEntity.createdAt
+                row[updatedAt] = userEntity.updatedAt
             }
 
             upsertSocialLinksForUserInternal(
-                userId = entity.id,
-                user = userRec,
-                now = now
+                userId = userEntity.id,
+                user = userRec
             )
         } else {
             // UPDATE path
             val updatedCount = UserTable.update(
-                where = { UserTable.id eq entity.id }
+                where = { UserTable.id eq userEntity.id }
             ) { row ->
-                row[accountName] = entity.accountName
-                row[emailAddress] = entity.emailAddress
-                row[firstName] = entity.firstName
-                row[lastName] = entity.lastName
-                row[birthDate] = entity.birthDate
-                row[about] = entity.about
-                row[tagline] = entity.tagline
-                row[profileUrl] = entity.profileUrl
-                row[backgroundUrl] = entity.backgroundUrl
-                row[userType] = entity.userTypeCode
-                row[emailOptIn] = entity.emailOptIn
-                row[isPrivate] = entity.isPrivate
-                row[isAnonymous] = entity.isAnonymous
-                row[isActive] = entity.isActive
-                row[updatedAt] = entity.updatedAt
+                row[accountName] = userEntity.accountName
+                row[emailAddress] = userEntity.emailAddress
+                row[firstName] = userEntity.firstName
+                row[lastName] = userEntity.lastName
+                row[birthDate] = userEntity.birthDate
+                row[about] = userEntity.about
+                row[tagline] = userEntity.tagline
+                row[profileUrl] = userEntity.profileUrl
+                row[backgroundUrl] = userEntity.backgroundUrl
+                row[userType] = userEntity.userTypeCode
+                row[emailOptIn] = userEntity.emailOptIn
+                row[isPrivate] = userEntity.isPrivate
+                row[isAnonymous] = userEntity.isAnonymous
+                row[isActive] = userEntity.isActive
+                row[updatedAt] = userEntity.updatedAt
             }
 
             if (updatedCount == 0) {
@@ -202,9 +203,8 @@ class UserRepoImpl (private val db: Database) : UserRepository {
             }
 
             upsertSocialLinksForUserInternal(
-                userId = entity.id,
-                user = userRec,
-                now = now
+                userId = userEntity.id,
+                user = userRec
             )
         }
 
@@ -264,7 +264,6 @@ class UserRepoImpl (private val db: Database) : UserRepository {
     private fun upsertSocialLinksForUserInternal(
         userId: UUID,
         user: User,
-        now: Instant,
     ) {
         if (!user.canExposeSocialLinks) {
             SocialLinkTable.deleteWhere { SocialLinkTable.userId eq EntityID(userId, UserTable) }
@@ -273,20 +272,19 @@ class UserRepoImpl (private val db: Database) : UserRepository {
 
         SocialLinkTable.deleteWhere { SocialLinkTable.userId eq EntityID(userId, UserTable) }
 
-        user.socialLinks.forEach { link ->
-            val entity = link.toEntity(
+        user.socialLinks.forEach { socialLink ->
+            val socialLinkEntity = socialLink.toEntity(
                 userId = userId,
-                platformId = link.platform.id,
-                createdAt = now,
+                platformId = socialLink.platform.id,
             )
 
             SocialLinkTable.insert { row ->
-                row[SocialLinkTable.id] = entity.id
-                row[SocialLinkTable.userId] = EntityID(entity.userId, UserTable)
-                row[platformId] = EntityID(entity.platformId, SocialPlatformTable)
-                row[username] = entity.username
-                row[completeUrl] = entity.completeUrl
-                row[createdAt] = entity.createdAt
+                row[SocialLinkTable.id] = socialLinkEntity.id
+                row[SocialLinkTable.userId] = EntityID(socialLinkEntity.userId, UserTable)
+                row[platformId] = EntityID(socialLinkEntity.platformId, SocialPlatformTable)
+                row[username] = socialLinkEntity.username
+                row[completeUrl] = socialLinkEntity.completeUrl
+                row[createdAt] = socialLinkEntity.createdAt
             }
         }
     }

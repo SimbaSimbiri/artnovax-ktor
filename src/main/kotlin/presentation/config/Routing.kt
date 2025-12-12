@@ -10,6 +10,8 @@ import org.koin.ktor.ext.inject
 
 fun Application.configureRouting() {
     install(Resources)
+
+    // injecting repos
     val userRepository: UserRepository by inject()
 
     routing {

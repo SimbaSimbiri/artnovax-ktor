@@ -52,7 +52,7 @@ fun Routing.userRoutes(userRepository: UserRepository) {
         userRepository.upsertUser(user)
             .onSuccess {
                 call.respond(
-                    message = "User created successfully",
+                    message = "User ${user.accountName} created successfully",
                     status = HttpStatusCode.Created
                 )
             }
@@ -89,7 +89,7 @@ fun Routing.userRoutes(userRepository: UserRepository) {
         userRepository.upsertUser(user)
             .onSuccess {
                 call.respond(
-                    message = "User updated successfully",
+                    message = "User ${user.accountName} updated successfully",
                     status = HttpStatusCode.OK
                 )
             }
@@ -103,7 +103,7 @@ fun Routing.userRoutes(userRepository: UserRepository) {
         userRepository.deleteUserById(path.userId)
             .onSuccess {
                 call.respond(
-                    message = "User deleted successfully",
+                    message = "User and SocialLinks associated with userId ${path.userId} deleted successfully",
                     status = HttpStatusCode.OK
                 )
             }

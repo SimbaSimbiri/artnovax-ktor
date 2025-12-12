@@ -7,6 +7,7 @@ import com.simbiri.domain.model.social.SocialPlatformRegistry
 import com.simbiri.domain.model.user.User
 import com.simbiri.domain.model.user.UserType
 import com.simbiri.presentation.routes.dto.social.SocialLinkUpsertDto
+import com.simbiri.presentation.routes.dto.social.toDomain
 import com.simbiri.presentation.routes.dto.social.toResponseDto
 import java.time.Instant
 import java.time.LocalDate
@@ -16,7 +17,7 @@ import java.util.UUID
 fun User.toResponseDto(): UserResponseDto {
     val canShowSocials = canExposeSocialLinks && !isAnonymous
 
-    val socialDtos = if (canShowSocials) {
+    val socialRespDtos = if (canShowSocials) {
         socialLinks.map { it.toResponseDto() }
     } else {
         emptyList()
@@ -38,26 +39,21 @@ fun User.toResponseDto(): UserResponseDto {
         emailOptIn = emailOptIn,
         createdAt = createdAt.toString(),
         updatedAt = updatedAt.toString(),
-        socialLinks = socialDtos,
+        socialLinks = socialRespDtos,
     )
 }
 
 fun List<User>.toResponseDto() = this.map { it.toResponseDto() }
 
 // added helpers for request DTOs
-fun UserUpsertDto.toDomainForCreate(
-    now: Instant = Instant.now(),
-): User =
+fun UserUpsertDto.toDomainForCreate(now: Instant = Instant.now()): User =
     toDomainInternal(
         now = now,
         existingUserId = null,
     )
 fun List<UserUpsertDto>.toDomainForCreate() = this.map { it.toDomainForCreate() }
 
-fun UserUpsertDto.toDomainForUpdate(
-    userId: UUID,
-    now: Instant = Instant.now(),
-): User =
+fun UserUpsertDto.toDomainForUpdate(userId: UUID, now: Instant = Instant.now()): User =
     toDomainInternal(
         now = now,
         existingUserId = userId,
@@ -92,18 +88,5 @@ private fun UserUpsertDto.toDomainInternal(
         socialLinks = socialLinksDomain,
         createdAt = now,
         updatedAt = now,
-    )
-}
-
-private fun SocialLinkUpsertDto.toDomain(): SocialLink? {
-    val platform: SocialPlatform = SocialPlatformRegistry.byId[platformId]
-        ?: return null
-
-    val url = "${platform.baseUrl}${username}"
-
-    return SocialLink(
-        platform = platform,
-        username = username,
-        completeUrl = url,
     )
 }

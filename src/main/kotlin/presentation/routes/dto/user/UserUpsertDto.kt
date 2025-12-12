@@ -3,7 +3,6 @@ package com.simbiri.presentation.routes.dto.user
 import com.simbiri.presentation.routes.dto.social.SocialLinkUpsertDto
 import kotlinx.serialization.Serializable
 
-
 @Serializable
 data class UserUpsertDto(
     val accountName: String,
