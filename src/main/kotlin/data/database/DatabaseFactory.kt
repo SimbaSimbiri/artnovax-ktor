@@ -40,13 +40,15 @@ object DatabaseFactory {
         TransactionManager.manager.defaultIsolationLevel = Connection.TRANSACTION_REPEATABLE_READ
 
         transaction(database) {
+            //Our first transaction is go create the schemas for all our tables
             SchemaUtils.create(
                 UserTable,
                 SocialPlatformTable,
                 SocialLinkTable
             )
         }
-
+        // the second transaction is to provide the initial social platform tables to prevent exceptions
+        // in creating a user's social links for the first time
         seedSocialPlatforms()
 
         return database
