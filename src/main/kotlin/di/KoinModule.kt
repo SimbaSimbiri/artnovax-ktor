@@ -2,8 +2,10 @@ package com.simbiri.di
 
 
 import com.simbiri.data.database.DatabaseFactory
+import com.simbiri.data.repository.CommunityRepoImpl
 import com.simbiri.data.repository.UserRepoImpl
 import com.simbiri.domain.repository.UserRepository
+import com.simbiri.domain.repository.CommunityRepository
 import org.jetbrains.exposed.sql.Database
 import org.koin.core.module.dsl.singleOf
 import org.koin.dsl.bind
@@ -14,4 +16,6 @@ val dataModule = module {
     single<Database> { DatabaseFactory.create() }
     // our user repositories
     singleOf(::UserRepoImpl).bind<UserRepository>()
+    // community repo
+    singleOf(::CommunityRepoImpl).bind<CommunityRepository>()
 }

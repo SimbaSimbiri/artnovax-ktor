@@ -1,5 +1,8 @@
 package com.simbiri.data.database
 
+import com.simbiri.data.database.entity.community.CommunityMemberTable
+import com.simbiri.data.database.entity.community.CommunitySocialLinkTable
+import com.simbiri.data.database.entity.community.CommunityTable
 import com.simbiri.data.database.entity.social.SocialLinkTable
 import com.simbiri.data.database.entity.social.SocialPlatformTable
 import com.simbiri.data.database.entity.user.UserTable
@@ -44,12 +47,16 @@ object DatabaseFactory {
             SchemaUtils.create(
                 UserTable,
                 SocialPlatformTable,
-                SocialLinkTable
+                SocialLinkTable,
+                CommunityTable,
+                CommunityMemberTable,
+                CommunitySocialLinkTable
             )
+            // we provide the initial social platform tables to prevent exceptions
+            // in creating a user's social links for the first time
+            seedSocialPlatforms()
         }
-        // the second transaction is to provide the initial social platform tables to prevent exceptions
-        // in creating a user's social links for the first time
-        seedSocialPlatforms()
+
 
         return database
     }

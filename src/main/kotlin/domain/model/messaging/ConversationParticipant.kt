@@ -3,6 +3,7 @@ package com.simbiri.domain.model.messaging
 import com.simbiri.domain.model.common.ConversationId
 import com.simbiri.domain.model.common.Timestamp
 import com.simbiri.domain.model.common.UserId
+import com.simbiri.domain.model.community.ParticipantRole
 
 data class ConversationParticipant(
     val conversationId: ConversationId,

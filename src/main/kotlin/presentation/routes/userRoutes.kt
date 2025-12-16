@@ -103,8 +103,7 @@ fun Routing.userRoutes(userRepository: UserRepository) {
         userRepository.deleteUserById(path.userId)
             .onSuccess {
                 call.respond(
-                    message = "User and SocialLinks associated with userId ${path.userId} deleted successfully",
-                    status = HttpStatusCode.OK
+                    HttpStatusCode.NoContent
                 )
             }
             .onFailure { error ->

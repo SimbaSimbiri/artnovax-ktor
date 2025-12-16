@@ -1,4 +1,4 @@
-package com.simbiri.domain.model.messaging
+package com.simbiri.domain.model.community
 
 enum class ParticipantRole {
     OWNER,

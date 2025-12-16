@@ -8,7 +8,6 @@ import com.simbiri.domain.model.social.SocialLink
 data class Community(
     val id: CommunityId? = null,
     val ownerId: UserId,
-    val moderatorId: UserId?,
     val name: String,
     val description: String,
     val profileUrl: String?,
