@@ -156,6 +156,7 @@ fun Routing.communityRoutes(
             }
     }
 
+    // POST add members in bulk to a community
     post<CommunityRoutesPath.Members.Bulk> { path ->
         val communityId = path.parent.communityId
 

@@ -31,7 +31,7 @@ object DatabaseFactory {
             this.username = dbUser
             this.password = dbPassword
             this.driverClassName = HIKARI_DRIVER_CLASS
-            this.maximumPoolSize = 10
+            this.maximumPoolSize = 3
             this.isAutoCommit = false
             this.transactionIsolation = HIKARI_TRANS_ISOLATION
             validate()

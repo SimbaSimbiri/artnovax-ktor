@@ -2,6 +2,7 @@ package com.simbiri.data.database.entity.user
 
 
 import org.jetbrains.exposed.dao.id.UUIDTable
+import org.jetbrains.exposed.sql.javatime.CurrentTimestamp
 import org.jetbrains.exposed.sql.javatime.date
 import org.jetbrains.exposed.sql.javatime.timestamp
 
@@ -22,7 +23,7 @@ object UserTable : UUIDTable("users") {
     val birthDate = date("birth_date")
 
     // Type / role (DEV, REGULAR, POST_MODERATOR, EVENTS_MODERATOR, PSYCHOLOGIST, ADMIN_EXEC, etc.)
-    // Store as an integer code; map to your domain enum in the mapper.
+    // Stored as an integer code; mapped to your domain enum in the mapper.
     val userType = integer("user_type")
 
     // Flags
