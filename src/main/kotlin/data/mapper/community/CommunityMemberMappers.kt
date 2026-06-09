@@ -14,5 +14,5 @@ fun CommunityMemberEntity.toDomain(): CommunityMember =
         joinedAt = joinedAt,
         leftAt = leftAt,
         userTypeAtJoin = UserType.fromCode(userTypeAtJoinCode!!),
-        participantRole = CommunityParticipantRole.valueOf(participantRole),
+        commParticipantRole = CommunityParticipantRole.valueOf(commParticipantRole),
     )

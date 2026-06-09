@@ -34,7 +34,7 @@ fun ResultRow.toCommunityMemberEntity(): CommunityMemberEntity =
         joinedAt = this[CommunityMemberTable.joinedAt],
         leftAt = this[CommunityMemberTable.leftAt],
         userTypeAtJoinCode = this[CommunityMemberTable.userTypeAtJoin],
-        participantRole = this[CommunityMemberTable.participantRole],
+        commParticipantRole = this[CommunityMemberTable.commParticipantRole],
     )
 
 fun ResultRow.toCommunitySocialLinkEntity(): CommunitySocialLinkEntity =

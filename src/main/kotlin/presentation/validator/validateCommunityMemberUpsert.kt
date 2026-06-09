@@ -13,11 +13,11 @@ fun RequestValidationConfig.validateCommunityMemberUpsert() {
             ?: return@validate ValidationResult.Invalid("userId must be a valid UUID.")
 
         val roleValid = runCatching {
-            CommunityParticipantRole.valueOf(dto.participantRole.uppercase())
+            CommunityParticipantRole.valueOf(dto.commParticipantRole.uppercase())
         }.isSuccess
 
         if (!roleValid) {
-            return@validate ValidationResult.Invalid("participantRole must be one of: OWNER, MODERATOR, MEMBER.")
+            return@validate ValidationResult.Invalid("commParticipantRole must be one of: OWNER, MODERATOR, MEMBER.")
         }
 
         ValidationResult.Valid

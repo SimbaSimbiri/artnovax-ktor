@@ -53,11 +53,11 @@ fun CommunityMemberUpsertDto.toDomain(
         joinedAt = joinedAt,
         leftAt = null,
         userTypeAtJoin = null, // you can later populate this from User.userType if you want
-        participantRole = CommunityParticipantRole.valueOf(participantRole),
+        commParticipantRole = CommunityParticipantRole.valueOf(commParticipantRole),
     )
 }
 fun CommunityMemberUpsertDto.toRole(): CommunityParticipantRole =
-    CommunityParticipantRole.valueOf(participantRole.uppercase())
+    CommunityParticipantRole.valueOf(commParticipantRole.uppercase())
 
 fun Community.toCommResponseDto(): CommunityResponseDto =
     CommunityResponseDto(
@@ -89,7 +89,7 @@ fun CommunityMember.toMembersResponseDto(): CommunityMemberResponseDto =
         joinedAt = joinedAt.toString(),
         leftAt = leftAt?.toString(),
         userTypeAtJoin = userTypeAtJoin?.code,
-        participantRole = participantRole.name,
+        participantRole = commParticipantRole.name,
     )
 
 fun List<CommunityMember>.toMembersResponseDto(): List<CommunityMemberResponseDto> =

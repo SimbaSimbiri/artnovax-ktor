@@ -40,7 +40,7 @@ class CommunityRepoImpl(
             .selectAll()
             .where {
                 (CommunityMemberTable.communityId eq communityId) and
-                        (CommunityMemberTable.participantRole eq CommunityParticipantRole.OWNER.name)
+                        (CommunityMemberTable.commParticipantRole eq CommunityParticipantRole.OWNER.name)
             }
             .singleOrNull()
 
@@ -394,7 +394,7 @@ class CommunityRepoImpl(
                         row[joinedAt] = now
                         row[leftAt] = null
                         row[userTypeAtJoin] = userTypeCode
-                        row[participantRole] = role.name
+                        row[commParticipantRole] = role.name
                     }
                 } else {
                     // Existing membership → only update role, keep joinedAt & userTypeAtJoin
@@ -402,7 +402,7 @@ class CommunityRepoImpl(
                         (CommunityMemberTable.communityId eq communityUuid) and
                                 (CommunityMemberTable.userId eq userUuid)
                     }) { row ->
-                        row[participantRole] = role.name
+                        row[commParticipantRole] = role.name
                     }
                 }
 
@@ -444,7 +444,7 @@ class CommunityRepoImpl(
                 }
 
                 // 2) Enforce at most one OWNER in the payload itself
-                val ownersInPayload = members.count { it.participantRole == CommunityParticipantRole.OWNER }
+                val ownersInPayload = members.count { it.commParticipantRole == CommunityParticipantRole.OWNER }
                 if (ownersInPayload > 1) {
                     return@dbQuery ResultType.Failure<DataError>(DataError.ValidationError)
                 }
@@ -464,7 +464,7 @@ class CommunityRepoImpl(
                     ensureOwnerConstraint(
                         communityId = communityUuid,
                         userId = userUuid,
-                        newRole = member.participantRole,
+                        newRole = member.commParticipantRole,
                     )?.let { error ->
                         return@dbQuery ResultType.Failure<DataError>(error)
                     }
@@ -485,7 +485,7 @@ class CommunityRepoImpl(
                         row[CommunityMemberTable.joinedAt] = joinedAt
                         row[CommunityMemberTable.leftAt] = leftAt
                         row[CommunityMemberTable.userTypeAtJoin] = userTypeCode
-                        row[CommunityMemberTable.participantRole] = member.participantRole.name
+                        row[CommunityMemberTable.commParticipantRole] = member.commParticipantRole.name
                     }
                 }
 

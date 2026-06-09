@@ -10,7 +10,7 @@ object CommunityMemberTable: Table("community_members") {
     val joinedAt = timestamp("joined_at")
     val leftAt = timestamp("left_at").nullable()
     val userTypeAtJoin = integer("user_type_at_join").nullable()
-    val participantRole = varchar("participant_role", 16)
+    val commParticipantRole = varchar("comm_participant_role", 16)
 
     override val primaryKey= PrimaryKey(userId, communityId)
 

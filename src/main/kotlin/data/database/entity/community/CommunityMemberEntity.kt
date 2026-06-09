@@ -9,6 +9,6 @@ data class CommunityMemberEntity(
     val joinedAt: Instant,
     val leftAt: Instant?,
     val userTypeAtJoinCode: Int?,
-    val participantRole: String,
+    val commParticipantRole: String,
 )
 
