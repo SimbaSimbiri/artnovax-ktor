@@ -2,7 +2,7 @@ package com.simbiri.domain.repository
 
 import com.simbiri.domain.model.community.Community
 import com.simbiri.domain.model.community.CommunityMember
-import com.simbiri.domain.model.community.ParticipantRole
+import com.simbiri.domain.model.community.CommunityParticipantRole
 import com.simbiri.domain.util.DataError
 import com.simbiri.domain.util.ResultType
 
@@ -16,7 +16,7 @@ interface CommunityRepository {
 
     // CRUD Membership
     suspend fun listMembers(communityId: String?): ResultType<List<CommunityMember>, DataError>
-    suspend fun upsertMember(communityId: String?, userId: String?, role: ParticipantRole): ResultType<Unit, DataError>
+    suspend fun upsertMember(communityId: String?, userId: String?, role: CommunityParticipantRole): ResultType<Unit, DataError>
 
     suspend fun upsertMembersInBulk(communityId: String?, members: List<CommunityMember>): ResultType<Unit, DataError>
     suspend fun removeMember(communityId: String?, userId: String?): ResultType<Unit, DataError>

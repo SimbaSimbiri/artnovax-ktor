@@ -12,5 +12,5 @@ data class CommunityMember(
     val joinedAt: Timestamp,
     val leftAt: Timestamp?,
     val userTypeAtJoin: UserType? = null, // global type of user when joining
-    val participantRole: ParticipantRole
+    val participantRole: CommunityParticipantRole
 )

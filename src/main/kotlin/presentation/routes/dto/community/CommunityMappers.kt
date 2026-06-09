@@ -6,7 +6,7 @@ import com.simbiri.domain.model.common.UserId
 import com.simbiri.domain.model.community.Community
 import com.simbiri.domain.model.community.CommunityMember
 import com.simbiri.domain.model.community.JoinPermission
-import com.simbiri.domain.model.community.ParticipantRole
+import com.simbiri.domain.model.community.CommunityParticipantRole
 import com.simbiri.domain.model.social.SocialLink
 import com.simbiri.presentation.routes.dto.social.toDomain
 import com.simbiri.presentation.routes.dto.social.toResponseDto
@@ -53,11 +53,11 @@ fun CommunityMemberUpsertDto.toDomain(
         joinedAt = joinedAt,
         leftAt = null,
         userTypeAtJoin = null, // you can later populate this from User.userType if you want
-        participantRole = ParticipantRole.valueOf(participantRole),
+        participantRole = CommunityParticipantRole.valueOf(participantRole),
     )
 }
-fun CommunityMemberUpsertDto.toRole(): ParticipantRole =
-    ParticipantRole.valueOf(participantRole.uppercase())
+fun CommunityMemberUpsertDto.toRole(): CommunityParticipantRole =
+    CommunityParticipantRole.valueOf(participantRole.uppercase())
 
 fun Community.toCommResponseDto(): CommunityResponseDto =
     CommunityResponseDto(

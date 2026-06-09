@@ -1,6 +1,6 @@
 package com.simbiri.presentation.validator
 
-import com.simbiri.domain.model.community.ParticipantRole
+import com.simbiri.domain.model.community.CommunityParticipantRole
 import com.simbiri.presentation.routes.dto.community.CommunityMemberUpsertDto
 import io.ktor.server.plugins.requestvalidation.*
 import java.util.*
@@ -13,7 +13,7 @@ fun RequestValidationConfig.validateCommunityMemberUpsert() {
             ?: return@validate ValidationResult.Invalid("userId must be a valid UUID.")
 
         val roleValid = runCatching {
-            ParticipantRole.valueOf(dto.participantRole.uppercase())
+            CommunityParticipantRole.valueOf(dto.participantRole.uppercase())
         }.isSuccess
 
         if (!roleValid) {

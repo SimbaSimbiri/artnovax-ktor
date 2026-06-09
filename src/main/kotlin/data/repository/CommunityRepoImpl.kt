@@ -8,7 +8,7 @@ import com.simbiri.data.database.utils.dbQuery
 import com.simbiri.data.mapper.community.*
 import com.simbiri.domain.model.community.Community
 import com.simbiri.domain.model.community.CommunityMember
-import com.simbiri.domain.model.community.ParticipantRole
+import com.simbiri.domain.model.community.CommunityParticipantRole
 import com.simbiri.domain.model.social.SocialLink
 import com.simbiri.domain.repository.CommunityRepository
 import com.simbiri.domain.util.DataError
@@ -32,15 +32,15 @@ class CommunityRepoImpl(
     private fun ensureOwnerConstraint(
         communityId: UUID,
         userId: UUID,
-        newRole: ParticipantRole,
+        newRole: CommunityParticipantRole,
     ): DataError? {
-        if (newRole != ParticipantRole.OWNER) return null
+        if (newRole != CommunityParticipantRole.OWNER) return null
 
         val existingOwnerRow = CommunityMemberTable
             .selectAll()
             .where {
                 (CommunityMemberTable.communityId eq communityId) and
-                        (CommunityMemberTable.participantRole eq ParticipantRole.OWNER.name)
+                        (CommunityMemberTable.participantRole eq CommunityParticipantRole.OWNER.name)
             }
             .singleOrNull()
 
@@ -346,7 +346,7 @@ class CommunityRepoImpl(
     override suspend fun upsertMember(
         communityId: String?,
         userId: String?,
-        role: ParticipantRole,
+        role: CommunityParticipantRole,
     ): ResultType<Unit, DataError> {
         if (communityId.isNullOrBlank() || userId.isNullOrBlank()) {
             return ResultType.Failure(DataError.ValidationError)
@@ -444,7 +444,7 @@ class CommunityRepoImpl(
                 }
 
                 // 2) Enforce at most one OWNER in the payload itself
-                val ownersInPayload = members.count { it.participantRole == ParticipantRole.OWNER }
+                val ownersInPayload = members.count { it.participantRole == CommunityParticipantRole.OWNER }
                 if (ownersInPayload > 1) {
                     return@dbQuery ResultType.Failure<DataError>(DataError.ValidationError)
                 }
