@@ -11,12 +11,13 @@ import com.simbiri.domain.model.community.CommunityMember
 import com.simbiri.domain.model.community.CommunityParticipantRole
 import com.simbiri.domain.model.social.SocialLink
 import com.simbiri.domain.repository.CommunityRepository
+import com.simbiri.data.repository.util.*
 import com.simbiri.domain.util.DataError
 import com.simbiri.domain.util.ResultType
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import java.time.Instant
-import java.util.*
+import java.util.UUID
 
 class CommunityRepoImpl(
     private val db: Database,
@@ -26,8 +27,10 @@ class CommunityRepoImpl(
 
     /**
      * Enforces at most one OWNER per community.
-     * - Allows re-assigning OWNER to the same user (idempotent).
-     * - Fails if trying to assign OWNER to a *different* user when another OWNER exists.
+     * - Allows re-assigning OWNER to the same user.
+     * - Fails if trying to assign OWNER to a different user when another OWNER exists.
+     *
+     * Must be called inside dbQuery / transaction.
      */
     private fun ensureOwnerConstraint(
         communityId: UUID,
@@ -45,14 +48,21 @@ class CommunityRepoImpl(
             .singleOrNull()
 
         if (existingOwnerRow != null && existingOwnerRow[CommunityMemberTable.userId] != userId) {
-            return DataError.ValidationError
+            val existingOwnerId = existingOwnerRow[CommunityMemberTable.userId]
+
+            return conflictError(
+                operation = "ensureOwnerConstraint",
+                message = "Community '$communityId' already has OWNER '$existingOwnerId'. " +
+                        "Cannot assign OWNER role to user '$userId'."
+            )
         }
+
         return null
     }
 
     /**
      * Recalculate and update memberCount for a community.
-     * Must be called inside an Exposed transaction (i.e., inside dbQuery).
+     * Must be called inside dbQuery / transaction.
      */
     private fun recalcMemberCountInternal(communityId: UUID) {
         val memberCount = CommunityMemberTable
@@ -66,18 +76,35 @@ class CommunityRepoImpl(
         }
     }
 
+    private fun communityExistsInternal(communityId: UUID): Boolean =
+        CommunityTable
+            .selectAll()
+            .where { CommunityTable.id eq communityId }
+            .limit(1)
+            .any()
+    
     // -------- Communities CRUD --------
 
     override suspend fun getAllCommunities(
         approved: Boolean?,
         ownerId: String?,
     ): ResultType<List<Community>, DataError> {
-        // Parse ownerId up front so an invalid UUID becomes a clear validation error
+        val operation = "getAllCommunities"
+
         val ownerUuid: UUID? = if (!ownerId.isNullOrBlank()) {
-            runCatching { UUID.fromString(ownerId) }.getOrElse {
-                return ResultType.Failure(DataError.ValidationError)
+            when (
+                val parsed = parseUuidOrFailure(
+                    operation = operation,
+                    field = "ownerId",
+                    value = ownerId
+                )
+            ) {
+                is ResultType.Success -> parsed.data
+                is ResultType.Failure -> return parsed
             }
-        } else null
+        } else {
+            null
+        }
 
         return try {
             val communities = db.dbQuery {
@@ -121,19 +148,30 @@ class CommunityRepoImpl(
             }
         } catch (e: Exception) {
             e.printStackTrace()
-            ResultType.Failure(DataError.DatabaseError)
+            ResultType.Failure(
+                databaseError(
+                    operation = operation,
+                    e = e,
+                    details = "approved=$approved, ownerId=$ownerId, ownerUuid=$ownerUuid"
+                )
+            )
         }
     }
 
-    override suspend fun getCommunityById(communityId: String?): ResultType<Community, DataError> {
-        if (communityId.isNullOrBlank()) {
-            return ResultType.Failure(DataError.ValidationError)
-        }
+    override suspend fun getCommunityById(
+        communityId: String?,
+    ): ResultType<Community, DataError> {
+        val operation = "getCommunityById"
 
-        val uuid = try {
-            UUID.fromString(communityId)
-        } catch (_: IllegalArgumentException) {
-            return ResultType.Failure(DataError.ValidationError)
+        val uuid = when (
+            val parsed = parseUuidOrFailure(
+                operation = operation,
+                field = "communityId",
+                value = communityId
+            )
+        ) {
+            is ResultType.Success -> parsed.data
+            is ResultType.Failure -> return parsed
         }
 
         return try {
@@ -156,30 +194,51 @@ class CommunityRepoImpl(
                 entity.toDomain(socialLinks = socials)
             }
 
-            if (community == null) ResultType.Failure(DataError.NotFound)
-            else ResultType.Success(community)
+            if (community == null) {
+                ResultType.Failure(DataError.NotFound)
+            } else {
+                ResultType.Success(community)
+            }
         } catch (e: Exception) {
             e.printStackTrace()
-            ResultType.Failure(DataError.DatabaseError)
+            ResultType.Failure(
+                databaseError(
+                    operation = operation,
+                    e = e,
+                    details = "communityId=$communityId, parsedCommunityUuid=$uuid"
+                )
+            )
         }
     }
 
-    override suspend fun upsertCommunity(community: Community): ResultType<Unit, DataError> =
-        try {
+    override suspend fun upsertCommunity(
+        community: Community,
+    ): ResultType<Unit, DataError> {
+        val operation = "upsertCommunity"
+
+        return try {
             db.dbQuery {
                 upsertCommunityInternal(community)
             }
         } catch (e: Exception) {
             e.printStackTrace()
-            ResultType.Failure(DataError.DatabaseError)
+            ResultType.Failure(
+                databaseError(
+                    operation = operation,
+                    e = e,
+                    details = "community.id=${community.id}, community.name=${community.name}"
+                )
+            )
         }
+    }
 
-    private fun upsertCommunityInternal(community: Community): ResultType<Unit, DataError> {
+    private fun upsertCommunityInternal(
+        community: Community,
+    ): ResultType<Unit, DataError> {
         val now = Instant.now()
         val entity = community.toEntity(now)
 
         if (community.id == null) {
-            // INSERT
             CommunityTable.insert { row ->
                 row[CommunityTable.id] = entity.id
                 row[ownerId] = entity.ownerId
@@ -198,7 +257,6 @@ class CommunityRepoImpl(
                 row[updatedAt] = entity.updatedAt
             }
         } else {
-            // UPDATE (do NOT touch memberCount; derived from membership)
             val updated = CommunityTable.update(
                 where = { CommunityTable.id eq entity.id },
             ) { row ->
@@ -221,7 +279,6 @@ class CommunityRepoImpl(
             }
         }
 
-        // Replace community social links
         upsertCommunitySocialLinksInternal(
             communityId = entity.id,
             socialLinks = community.socialLinks,
@@ -231,15 +288,20 @@ class CommunityRepoImpl(
         return ResultType.Success(Unit)
     }
 
-    override suspend fun deleteCommunityById(communityId: String?): ResultType<Unit, DataError> {
-        if (communityId.isNullOrBlank()) {
-            return ResultType.Failure(DataError.ValidationError)
-        }
+    override suspend fun deleteCommunityById(
+        communityId: String?,
+    ): ResultType<Unit, DataError> {
+        val operation = "deleteCommunityById"
 
-        val uuid = try {
-            UUID.fromString(communityId)
-        } catch (_: IllegalArgumentException) {
-            return ResultType.Failure(DataError.ValidationError)
+        val uuid = when (
+            val parsed = parseUuidOrFailure(
+                operation = operation,
+                field = "communityId",
+                value = communityId
+            )
+        ) {
+            is ResultType.Success -> parsed.data
+            is ResultType.Failure -> return parsed
         }
 
         return try {
@@ -248,32 +310,62 @@ class CommunityRepoImpl(
                 CommunitySocialLinkTable.deleteWhere { CommunitySocialLinkTable.communityId eq uuid }
 
                 val deleted = CommunityTable.deleteWhere { CommunityTable.id eq uuid }
-                if (deleted > 0) ResultType.Success(Unit)
-                else ResultType.Failure(DataError.NotFound)
+
+                if (deleted > 0) {
+                    ResultType.Success(Unit)
+                } else {
+                    ResultType.Failure(DataError.NotFound)
+                }
             }
         } catch (e: Exception) {
             e.printStackTrace()
-            ResultType.Failure(DataError.DatabaseError)
+            ResultType.Failure(
+                databaseError(
+                    operation = operation,
+                    e = e,
+                    details = "communityId=$communityId, parsedCommunityUuid=$uuid"
+                )
+            )
         }
     }
 
     override suspend fun insertCommunitiesInBulk(
         communities: List<Community>,
-    ): ResultType<Unit, DataError> =
-        try {
+    ): ResultType<Unit, DataError> {
+        val operation = "insertCommunitiesInBulk"
+
+        return try {
             db.dbQuery {
-                for (community in communities) {
+                communities.forEachIndexed { index, community ->
                     when (val res = upsertCommunityInternal(community)) {
-                        is ResultType.Failure -> return@dbQuery res
+                        is ResultType.Failure -> {
+                            return@dbQuery ResultType.Failure(
+                                DataError.DatabaseError(
+                                    operation = operation,
+                                    cause = "Bulk community insert failed at index=$index, " +
+                                            "community.id=${community.id}, community.name=${community.name}. " +
+                                            "Nested error=${res.error}"
+                                )
+                            )
+                        }
+
                         is ResultType.Success -> Unit
                     }
                 }
+
                 ResultType.Success(Unit)
             }
         } catch (e: Exception) {
             e.printStackTrace()
-            ResultType.Failure(DataError.DatabaseError)
+            ResultType.Failure(
+                databaseError(
+                    operation = operation,
+                    e = e,
+                    details = "communities.size=${communities.size}"
+                )
+            )
         }
+    }
 
     private fun upsertCommunitySocialLinksInternal(
         communityId: UUID,
@@ -303,25 +395,25 @@ class CommunityRepoImpl(
 
     // -------- Membership --------
 
-    override suspend fun listMembers(communityId: String?): ResultType<List<CommunityMember>, DataError> {
-        if (communityId.isNullOrBlank()) {
-            return ResultType.Failure(DataError.ValidationError)
-        }
+    override suspend fun listMembers(
+        communityId: String?,
+    ): ResultType<List<CommunityMember>, DataError> {
+        val operation = "listMembers"
 
-        val uuid = try {
-            UUID.fromString(communityId)
-        } catch (_: IllegalArgumentException) {
-            return ResultType.Failure(DataError.ValidationError)
+        val uuid = when (
+            val parsed = parseUuidOrFailure(
+                operation = operation,
+                field = "communityId",
+                value = communityId
+            )
+        ) {
+            is ResultType.Success -> parsed.data
+            is ResultType.Failure -> return parsed
         }
 
         return try {
             val membersOrNull = db.dbQuery {
-                // Distinguish "community doesn't exist" from "no members yet"
-                val exists = CommunityTable
-                    .selectAll()
-                    .where { CommunityTable.id eq uuid }
-                    .limit(1)
-                    .any()
+                val exists = communityExistsInternal(uuid)
 
                 if (!exists) {
                     return@dbQuery null
@@ -333,13 +425,20 @@ class CommunityRepoImpl(
                     .map { it.toCommunityMemberEntity().toDomain() }
             }
 
-            when {
-                membersOrNull == null -> ResultType.Failure(DataError.NotFound)
-                else -> ResultType.Success(membersOrNull) // possibly empty, which is fine
+            if (membersOrNull == null) {
+                ResultType.Failure(DataError.NotFound)
+            } else {
+                ResultType.Success(membersOrNull)
             }
         } catch (e: Exception) {
             e.printStackTrace()
-            ResultType.Failure(DataError.DatabaseError)
+            ResultType.Failure(
+                databaseError(
+                    operation = operation,
+                    e = e,
+                    details = "communityId=$communityId, parsedCommunityUuid=$uuid"
+                )
+            )
         }
     }
 
@@ -348,18 +447,53 @@ class CommunityRepoImpl(
         userId: String?,
         role: CommunityParticipantRole,
     ): ResultType<Unit, DataError> {
-        if (communityId.isNullOrBlank() || userId.isNullOrBlank()) {
-            return ResultType.Failure(DataError.ValidationError)
+        val operation = "upsertMember"
+
+        val communityUuid = when (
+            val parsed = parseUuidOrFailure(
+                operation = operation,
+                field = "communityId",
+                value = communityId
+            )
+        ) {
+            is ResultType.Success -> parsed.data
+            is ResultType.Failure -> return parsed
         }
 
-        val communityUuid = runCatching { UUID.fromString(communityId) }.getOrNull()
-            ?: return ResultType.Failure(DataError.ValidationError)
-        val userUuid = runCatching { UUID.fromString(userId) }.getOrNull()
-            ?: return ResultType.Failure(DataError.ValidationError)
+        val userUuid = when (
+            val parsed = parseUuidOrFailure(
+                operation = operation,
+                field = "userId",
+                value = userId
+            )
+        ) {
+            is ResultType.Success -> parsed.data
+            is ResultType.Failure -> return parsed
+        }
 
         return try {
             db.dbQuery {
-                // Enforce single OWNER
+                val communityExists = communityExistsInternal(communityUuid)
+                if (!communityExists) {
+                    return@dbQuery ResultType.Failure<DataError>(
+                        foreignKeyError(
+                            operation = operation,
+                            message = "Cannot upsert member because community '$communityUuid' does not exist."
+                        )
+                    )
+                }
+
+                val userRow = UserTable
+                    .selectAll()
+                    .where { UserTable.id eq userUuid }
+                    .singleOrNull()
+                    ?: return@dbQuery ResultType.Failure<DataError>(
+                        foreignKeyError(
+                            operation = operation,
+                            message = "Cannot upsert member because user '$userUuid' does not exist."
+                        )
+                    )
+
                 ensureOwnerConstraint(
                     communityId = communityUuid,
                     userId = userUuid,
@@ -370,7 +504,6 @@ class CommunityRepoImpl(
 
                 val now = Instant.now()
 
-                // Check if membership already exists
                 val existingMembership = CommunityMemberTable
                     .selectAll()
                     .where {
@@ -380,13 +513,7 @@ class CommunityRepoImpl(
                     .singleOrNull()
 
                 if (existingMembership == null) {
-                    // New membership → snapshot current global UserType
-                    val userTypeCode = UserTable
-                        .selectAll()
-                        .where { UserTable.id eq userUuid }
-                        .singleOrNull()
-                        ?.get(UserTable.userType)
-                        ?: return@dbQuery ResultType.Failure<DataError>(DataError.NotFound)
+                    val userTypeCode = userRow[UserTable.userType]
 
                     CommunityMemberTable.insert { row ->
                         row[CommunityMemberTable.communityId] = communityUuid
@@ -397,7 +524,6 @@ class CommunityRepoImpl(
                         row[commParticipantRole] = role.name
                     }
                 } else {
-                    // Existing membership → only update role, keep joinedAt & userTypeAtJoin
                     CommunityMemberTable.update({
                         (CommunityMemberTable.communityId eq communityUuid) and
                                 (CommunityMemberTable.userId eq userUuid)
@@ -412,7 +538,14 @@ class CommunityRepoImpl(
             }
         } catch (e: Exception) {
             e.printStackTrace()
-            ResultType.Failure(DataError.DatabaseError)
+            ResultType.Failure(
+                databaseError(
+                    operation = operation,
+                    e = e,
+                    details = "communityId=$communityId, parsedCommunityUuid=$communityUuid, " +
+                            "userId=$userId, parsedUserUuid=$userUuid, role=$role"
+                )
+            )
         }
     }
 
@@ -420,72 +553,92 @@ class CommunityRepoImpl(
         communityId: String?,
         members: List<CommunityMember>,
     ): ResultType<Unit, DataError> {
-        if (communityId.isNullOrBlank()) {
-            return ResultType.Failure(DataError.ValidationError)
-        }
-        if (members.isEmpty()) {
-            return ResultType.Success(Unit) // nothing to do
+        val operation = "upsertMembersInBulk"
+
+        val communityUuid = when (
+            val parsed = parseUuidOrFailure(
+                operation = operation,
+                field = "communityId",
+                value = communityId
+            )
+        ) {
+            is ResultType.Success -> parsed.data
+            is ResultType.Failure -> return parsed
         }
 
-        val communityUuid = runCatching { UUID.fromString(communityId) }.getOrNull()
-            ?: return ResultType.Failure(DataError.ValidationError)
+        if (members.isEmpty()) {
+            return ResultType.Success(Unit)
+        }
 
         return try {
             db.dbQuery {
-                // 1) Check community exists
-                val exists = CommunityTable
-                    .selectAll()
-                    .where { CommunityTable.id eq communityUuid }
-                    .limit(1)
-                    .any()
-
-                if (!exists) {
-                    return@dbQuery ResultType.Failure<DataError>(DataError.NotFound)
+                val communityExists = communityExistsInternal(communityUuid)
+                if (!communityExists) {
+                    return@dbQuery ResultType.Failure<DataError>(
+                        foreignKeyError(
+                            operation = operation,
+                            message = "Cannot bulk upsert members because community '$communityUuid' does not exist."
+                        )
+                    )
                 }
 
-                // 2) Enforce at most one OWNER in the payload itself
-                val ownersInPayload = members.count { it.commParticipantRole == CommunityParticipantRole.OWNER }
+                val ownersInPayload = members.count {
+                    it.commParticipantRole == CommunityParticipantRole.OWNER
+                }
+
                 if (ownersInPayload > 1) {
-                    return@dbQuery ResultType.Failure<DataError>(DataError.ValidationError)
+                    return@dbQuery ResultType.Failure<DataError>(
+                        validationError(
+                            operation = operation,
+                            field = "members",
+                            value = "ownersInPayload=$ownersInPayload",
+                            reason = "Bulk payload cannot contain more than one OWNER."
+                        )
+                    )
                 }
 
-                // 3) Upsert each member
-                members.forEach { member ->
-                    val userUuid = member.userId.value  // adjust if your UserId type differs
+                members.forEachIndexed { index, member ->
+                    val userUuid = member.userId.value
+                    val memberRole = member.commParticipantRole
 
-                    // enforce user exists
                     val userRow = UserTable
                         .selectAll()
                         .where { UserTable.id eq userUuid }
                         .singleOrNull()
-                        ?: return@dbQuery ResultType.Failure<DataError>(DataError.NotFound)
+                        ?: return@dbQuery ResultType.Failure<DataError>(
+                            foreignKeyError(
+                                operation = operation,
+                                message = "Cannot insert member at index=$index because user '$userUuid' does not exist."
+                            )
+                        )
 
-                    // Enforce single OWNER (community-wide)
                     ensureOwnerConstraint(
                         communityId = communityUuid,
                         userId = userUuid,
-                        newRole = member.commParticipantRole,
+                        newRole = memberRole,
                     )?.let { error ->
-                        return@dbQuery ResultType.Failure<DataError>(error)
+                        return@dbQuery ResultType.Failure<DataError>(
+                            DataError.Conflict(
+                                message = "Bulk member upsert failed at index=$index for user '$userUuid'. " +
+                                        "Nested error=$error"
+                            )
+                        )
                     }
 
-                    // delete any existing membership row, then insert fresh
                     CommunityMemberTable.deleteWhere {
                         (CommunityMemberTable.communityId eq communityUuid) and
                                 (CommunityMemberTable.userId eq userUuid)
                     }
 
                     val userTypeCode = member.userTypeAtJoin?.code ?: userRow[UserTable.userType]
-                    val joinedAt = member.joinedAt
-                    val leftAt = member.leftAt
 
                     CommunityMemberTable.insert { row ->
                         row[CommunityMemberTable.communityId] = communityUuid
                         row[CommunityMemberTable.userId] = userUuid
-                        row[CommunityMemberTable.joinedAt] = joinedAt
-                        row[CommunityMemberTable.leftAt] = leftAt
+                        row[CommunityMemberTable.joinedAt] = member.joinedAt
+                        row[CommunityMemberTable.leftAt] = member.leftAt
                         row[CommunityMemberTable.userTypeAtJoin] = userTypeCode
-                        row[CommunityMemberTable.commParticipantRole] = member.commParticipantRole.name
+                        row[CommunityMemberTable.commParticipantRole] = memberRole.name
                     }
                 }
 
@@ -495,7 +648,13 @@ class CommunityRepoImpl(
             }
         } catch (e: Exception) {
             e.printStackTrace()
-            ResultType.Failure(DataError.DatabaseError)
+            ResultType.Failure(
+                databaseError(
+                    operation = operation,
+                    e = e,
+                    details = "communityId=$communityId, parsedCommunityUuid=$communityUuid, members.size=${members.size}"
+                )
+            )
         }
     }
 
@@ -503,14 +662,29 @@ class CommunityRepoImpl(
         communityId: String?,
         userId: String?,
     ): ResultType<Unit, DataError> {
-        if (communityId.isNullOrBlank() || userId.isNullOrBlank()) {
-            return ResultType.Failure(DataError.ValidationError)
+        val operation = "removeMember"
+
+        val communityUuid = when (
+            val parsed = parseUuidOrFailure(
+                operation = operation,
+                field = "communityId",
+                value = communityId
+            )
+        ) {
+            is ResultType.Success -> parsed.data
+            is ResultType.Failure -> return parsed
         }
 
-        val communityUuid = runCatching { UUID.fromString(communityId) }.getOrNull()
-            ?: return ResultType.Failure(DataError.ValidationError)
-        val userUuid = runCatching { UUID.fromString(userId) }.getOrNull()
-            ?: return ResultType.Failure(DataError.ValidationError)
+        val userUuid = when (
+            val parsed = parseUuidOrFailure(
+                operation = operation,
+                field = "userId",
+                value = userId
+            )
+        ) {
+            is ResultType.Success -> parsed.data
+            is ResultType.Failure -> return parsed
+        }
 
         return try {
             db.dbQuery {
@@ -528,7 +702,14 @@ class CommunityRepoImpl(
             }
         } catch (e: Exception) {
             e.printStackTrace()
-            ResultType.Failure(DataError.DatabaseError)
+            ResultType.Failure(
+                databaseError(
+                    operation = operation,
+                    e = e,
+                    details = "communityId=$communityId, parsedCommunityUuid=$communityUuid, " +
+                            "userId=$userId, parsedUserUuid=$userUuid"
+                )
+            )
         }
     }
 }

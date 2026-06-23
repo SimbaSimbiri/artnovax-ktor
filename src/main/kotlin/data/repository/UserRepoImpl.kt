@@ -11,6 +11,7 @@ import com.simbiri.data.mapper.social.toSocialPlatformEntity
 import com.simbiri.data.mapper.user.toDomain
 import com.simbiri.data.mapper.user.toEntity
 import com.simbiri.data.mapper.user.toUserEntity
+import com.simbiri.data.repository.util.*
 import com.simbiri.domain.model.social.SocialLink
 import com.simbiri.domain.model.user.User
 import com.simbiri.domain.repository.UserRepository
@@ -20,15 +21,109 @@ import org.jetbrains.exposed.dao.id.EntityID
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import java.time.Instant
-import java.util.*
+import java.util.UUID
 
+class UserRepoImpl(
+    private val db: Database,
+) : UserRepository {
 
-class UserRepoImpl (private val db: Database) : UserRepository {
+    // -------- Error helpers --------
 
-    override suspend fun getAllUsers(userType: Int?): ResultType<List<User>, DataError> {
+    private fun withBulkContext(
+        error: DataError,
+        operation: String,
+        index: Int,
+        user: User,
+    ): DataError {
+        val context = "Bulk user upsert failed in $operation at index=$index. " +
+                "user.id=${user.id}, accountName=${user.accountName}, emailAddress=${user.emailAddress}."
+
+        return when (error) {
+            DataError.NotFound -> DataError.NotFound
+
+            is DataError.ValidationError ->
+                DataError.ValidationError("$context \nNested validation error: ${error.message}")
+
+            is DataError.DatabaseError ->
+                DataError.DatabaseError(
+                    operation = operation,
+                    cause = "$context \nNested database error from ${error.operation}: ${error.cause}"
+                )
+
+            is DataError.ForeignKeyViolation ->
+                DataError.ForeignKeyViolation("$context \nNested foreign key error: ${error.message}")
+
+            is DataError.Conflict ->
+                DataError.Conflict("$context \nNested conflict error: ${error.message}")
+
+            is DataError.DuplicateResource ->
+                DataError.DuplicateResource("$context \nNested duplicate resource error: ${error.message}")
+
+            is DataError.UnknownError ->
+                DataError.UnknownError("$context \nNested unknown error: ${error.cause}")
+        }
+    }
+
+    // -------- Internal existence helpers --------
+
+    private fun socialPlatformExistsInternal(platformId: Int): Boolean =
+        SocialPlatformTable
+            .selectAll()
+            .where { SocialPlatformTable.id eq EntityID(table= SocialPlatformTable, id=platformId )}
+            .limit(1)
+            .any()
+
+    // -------- Validation helpers --------
+
+    /**
+     * Validates user state before insert/update.
+     *
+     * Important:
+     * - if canExposeSocialLinks=false, the user should not submit social links.
+     * - Bulk insert also calls this method, so bulk uploads cannot bypass this rule.
+     * - Social platform IDs are checked before writing, so FK failures become readable errors.
+     *
+     * Must be called inside dbQuery / transaction because it can query SocialPlatformTable.
+     */
+    private fun validateUserForUpsertInternal(
+        operation: String,
+        user: User,
+    ): DataError? {
+        if (!user.canExposeSocialLinks && user.socialLinks.isNotEmpty()) {
+            return validationError(
+                operation = operation,
+                field = "socialLinks",
+                value = "socialLinks.size=${user.socialLinks.size}, canExposeSocialLinks=${user.canExposeSocialLinks}",
+                reason = "User cannot have social links when canExposeSocialLinks is false."
+            )
+        }
+
+        if (user.canExposeSocialLinks) {
+            user.socialLinks.forEachIndexed { index, socialLink ->
+                val platformId = socialLink.platform.id
+
+                if (!socialPlatformExistsInternal(platformId)) {
+                    return foreignKeyError(
+                        operation = operation,
+                        message = "Social link at index=$index references platform '$platformId', " +
+                                "but no row exists in social platform table for that platform id."
+                    )
+                }
+            }
+        }
+
+        return null
+    }
+
+    // -------- Users CRUD --------
+
+    override suspend fun getAllUsers(
+        userType: Int?,
+    ): ResultType<List<User>, DataError> {
+        val operation = "getAllUsers"
+
         return try {
             val users = db.dbQuery {
-                // 1) Fetch all users (optionally filtered by type)
                 val baseQuery = if (userType == null) {
                     UserTable.selectAll()
                 } else {
@@ -43,7 +138,6 @@ class UserRepoImpl (private val db: Database) : UserRepository {
                 val userEntities = userRows.map { it.toUserEntity() }
                 val userIds = userEntities.map { it.id }.toSet()
 
-                // 2) Fetch all social links for those users in one go
                 val userIdEntityIds = userIds.map { EntityID(it, UserTable) }
 
                 val socialRows = SocialLinkTable
@@ -53,10 +147,10 @@ class UserRepoImpl (private val db: Database) : UserRepository {
                         onColumn = SocialLinkTable.platformId,
                         otherColumn = SocialPlatformTable.id
                     )
-                    .selectAll().where { SocialLinkTable.userId inList userIdEntityIds }
+                    .selectAll()
+                    .where { SocialLinkTable.userId inList userIdEntityIds }
                     .toList()
 
-                // 3) Group socials by userId and gather them to a value list accessed by a userId key
                 val socialsByUserId: Map<UUID, List<SocialLink>> =
                     socialRows
                         .groupBy { row -> row[SocialLinkTable.userId].value }
@@ -67,43 +161,55 @@ class UserRepoImpl (private val db: Database) : UserRepository {
                             }
                         }
 
-                // 4) Build domain Users with their social links
                 userEntities.map { entity ->
                     val socials = socialsByUserId[entity.id].orEmpty()
                     entity.toDomain(socialLinks = socials)
                 }
             }
 
-            if (users.isEmpty()) ResultType.Failure(DataError.NotFound)
-            else ResultType.Success(users)
-
+            if (users.isEmpty()) {
+                ResultType.Failure(DataError.NotFound)
+            } else {
+                ResultType.Success(users)
+            }
         } catch (e: Exception) {
             e.printStackTrace()
-            ResultType.Failure(DataError.DatabaseError)
+            ResultType.Failure(
+                databaseError(
+                    operation = operation,
+                    e = e,
+                    details = "userType=$userType"
+                )
+            )
         }
     }
 
-    override suspend fun getUserById(userId: String?): ResultType<User, DataError> {
-        if (userId.isNullOrBlank()) {
-            return ResultType.Failure(DataError.ValidationError)
-        }
-        // validate input first before trying to get a specific user
-        val uuid = try {
-            UUID.fromString(userId)
-        } catch (e: IllegalArgumentException) {
-            return ResultType.Failure(DataError.ValidationError)
+    override suspend fun getUserById(
+        userId: String?,
+    ): ResultType<User, DataError> {
+        val operation = "getUserById"
+
+        val uuid = when (
+            val parsed = parseUuidOrFailure(
+                operation = operation,
+                field = "userId",
+                value = userId
+            )
+        ) {
+            is ResultType.Success -> parsed.data
+            is ResultType.Failure -> return parsed
         }
 
         return try {
             val user = db.dbQuery {
                 val userRow = UserTable
-                    .selectAll().where { UserTable.id eq uuid }
+                    .selectAll()
+                    .where { UserTable.id eq uuid }
                     .singleOrNull()
                     ?: return@dbQuery null
 
                 val userEntity = userRow.toUserEntity()
 
-                // Load socials for this user
                 val socialRows = SocialLinkTable
                     .join(
                         SocialPlatformTable,
@@ -111,7 +217,8 @@ class UserRepoImpl (private val db: Database) : UserRepository {
                         onColumn = SocialLinkTable.platformId,
                         otherColumn = SocialPlatformTable.id
                     )
-                    .selectAll().where { SocialLinkTable.userId eq EntityID(uuid, UserTable) }
+                    .selectAll()
+                    .where { SocialLinkTable.userId eq EntityID(uuid, UserTable) }
                     .toList()
 
                 val socialLinks = socialRows.map { row ->
@@ -122,20 +229,27 @@ class UserRepoImpl (private val db: Database) : UserRepository {
                 userEntity.toDomain(socialLinks = socialLinks)
             }
 
-            if (user == null) ResultType.Failure(DataError.NotFound)
-            else ResultType.Success(user)
-
+            if (user == null) {
+                ResultType.Failure(DataError.NotFound)
+            } else {
+                ResultType.Success(user)
+            }
         } catch (e: Exception) {
             e.printStackTrace()
-            ResultType.Failure(DataError.DatabaseError)
+            ResultType.Failure(
+                databaseError(
+                    operation = operation,
+                    e = e,
+                    details = "userId=$userId, parsedUserUuid=$uuid"
+                )
+            )
         }
     }
 
-    override suspend fun upsertUser(userRec: User): ResultType<Unit, DataError> {
-        // revoke upserting a user who is not allowed to expose their social links
-        if (!userRec.canExposeSocialLinks && userRec.socialLinks.isNotEmpty()) {
-            return ResultType.Failure(DataError.ValidationError)
-        }
+    override suspend fun upsertUser(
+        userRec: User,
+    ): ResultType<Unit, DataError> {
+        val operation = "upsertUser"
 
         return try {
             db.dbQuery {
@@ -143,15 +257,33 @@ class UserRepoImpl (private val db: Database) : UserRepository {
             }
         } catch (e: Exception) {
             e.printStackTrace()
-            ResultType.Failure(DataError.DatabaseError)
+            ResultType.Failure(
+                databaseError(
+                    operation = operation,
+                    e = e,
+                    details = "user.id=${userRec.id}, accountName=${userRec.accountName}, " +
+                            "emailAddress=${userRec.emailAddress}, socialLinks.size=${userRec.socialLinks.size}, " +
+                            "canExposeSocialLinks=${userRec.canExposeSocialLinks}"
+                )
+            )
         }
     }
-    private fun upsertUserInternal(userRec: User): ResultType<Unit, DataError> {
+
+    private fun upsertUserInternal(
+        userRec: User,
+    ): ResultType<Unit, DataError> {
+        val operation = "upsertUserInternal"
         val now = Instant.now()
         val userEntity = userRec.toEntity(now)
 
+        validateUserForUpsertInternal(
+            operation = operation,
+            user = userRec,
+        )?.let { error ->
+            return ResultType.Failure(error)
+        }
+
         if (userRec.id == null) {
-            // INSERT path
             UserTable.insert { row ->
                 row[UserTable.id] = userEntity.id
                 row[accountName] = userEntity.accountName
@@ -174,10 +306,9 @@ class UserRepoImpl (private val db: Database) : UserRepository {
 
             upsertSocialLinksForUserInternal(
                 userId = userEntity.id,
-                user = userRec
+                user = userRec,
             )
         } else {
-            // UPDATE path
             val updatedCount = UserTable.update(
                 where = { UserTable.id eq userEntity.id }
             ) { row ->
@@ -199,54 +330,85 @@ class UserRepoImpl (private val db: Database) : UserRepository {
             }
 
             if (updatedCount == 0) {
-                return ResultType.Failure<DataError>(DataError.NotFound)
+                return ResultType.Failure(DataError.NotFound)
             }
 
             upsertSocialLinksForUserInternal(
                 userId = userEntity.id,
-                user = userRec
+                user = userRec,
             )
         }
 
         return ResultType.Success(Unit)
     }
 
-    override suspend fun insertUsersInBulk(users: List<User>): ResultType<Unit, DataError> {
+    override suspend fun insertUsersInBulk(
+        users: List<User>,
+    ): ResultType<Unit, DataError> {
+        val operation = "insertUsersInBulk"
+
+        if (users.isEmpty()) {
+            return ResultType.Success(Unit)
+        }
+
         return try {
             db.dbQuery {
-                users.forEach { user ->
+                users.forEachIndexed { index, user ->
                     when (val res = upsertUserInternal(user)) {
-                        is ResultType.Failure -> return@dbQuery res
+                        is ResultType.Failure -> {
+                            return@dbQuery ResultType.Failure(
+                                withBulkContext(
+                                    error = res.error,
+                                    operation = operation,
+                                    index = index,
+                                    user = user,
+                                )
+                            )
+                        }
+
                         is ResultType.Success -> Unit
                     }
                 }
+
                 ResultType.Success(Unit)
             }
         } catch (e: Exception) {
             e.printStackTrace()
-            ResultType.Failure(DataError.DatabaseError)
+            ResultType.Failure(
+                databaseError(
+                    operation = operation,
+                    e = e,
+                    details = "users.size=${users.size}"
+                )
+            )
         }
     }
 
-    override suspend fun deleteUserById(userId: String?): ResultType<Unit, DataError> {
-        if (userId.isNullOrBlank()) {
-            return ResultType.Failure(DataError.ValidationError)
-        }
+    override suspend fun deleteUserById(
+        userId: String?,
+    ): ResultType<Unit, DataError> {
+        val operation = "deleteUserById"
 
-        val uuid = try {
-            UUID.fromString(userId)
-        } catch (e: IllegalArgumentException) {
-            return ResultType.Failure(DataError.ValidationError)
+        val uuid = when (
+            val parsed = parseUuidOrFailure(
+                operation = operation,
+                field = "userId",
+                value = userId
+            )
+        ) {
+            is ResultType.Success -> parsed.data
+            is ResultType.Failure -> return parsed
         }
 
         return try {
             db.dbQuery {
-                // Delete socials first (due to FK)
                 SocialLinkTable.deleteWhere {
                     SocialLinkTable.userId eq EntityID(uuid, UserTable)
                 }
 
-                val deletedCount = UserTable.deleteWhere { UserTable.id eq uuid }
+                val deletedCount = UserTable.deleteWhere {
+                    UserTable.id eq uuid
+                }
 
                 if (deletedCount > 0) {
                     ResultType.Success(Unit)
@@ -256,21 +418,38 @@ class UserRepoImpl (private val db: Database) : UserRepository {
             }
         } catch (e: Exception) {
             e.printStackTrace()
-            ResultType.Failure(DataError.DatabaseError)
+            ResultType.Failure(
+                databaseError(
+                    operation = operation,
+                    e = e,
+                    details = "userId=$userId, parsedUserUuid=$uuid"
+                )
+            )
         }
     }
 
-    // Our Internal helpers
+    // -------- Social link helpers --------
+
+    /**
+     * Replaces the user's social links.
+     *
+     * Must be called inside dbQuery / transaction.
+     * Validation is expected to happen before this function via validateUserForUpsertInternal.
+     */
     private fun upsertSocialLinksForUserInternal(
         userId: UUID,
         user: User,
     ) {
         if (!user.canExposeSocialLinks) {
-            SocialLinkTable.deleteWhere { SocialLinkTable.userId eq EntityID(userId, UserTable) }
+            SocialLinkTable.deleteWhere {
+                SocialLinkTable.userId eq EntityID(userId, UserTable)
+            }
             return
         }
 
-        SocialLinkTable.deleteWhere { SocialLinkTable.userId eq EntityID(userId, UserTable) }
+        SocialLinkTable.deleteWhere {
+            SocialLinkTable.userId eq EntityID(userId, UserTable)
+        }
 
         user.socialLinks.forEach { socialLink ->
             val socialLinkEntity = socialLink.toEntity(
@@ -288,8 +467,4 @@ class UserRepoImpl (private val db: Database) : UserRepository {
             }
         }
     }
-
-
 }
-
-
