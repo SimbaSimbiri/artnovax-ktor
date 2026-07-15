@@ -23,11 +23,8 @@ dependencies {
 
     implementation(libs.koin.ktor)
     implementation(libs.koin.logger.slf4j)
-    implementation(libs.ktor.server.content.negotiation)
-    implementation(libs.ktor.serialization.kotlinx.json)
-    implementation(libs.ktor.server.netty)
     implementation(libs.logback.classic)
-    implementation(libs.ktor.server.call.logging)
+    implementation(libs.ktor.serialization.kotlinx.json)
 
     // aws rds specific
     implementation(libs.postgres.driver)
