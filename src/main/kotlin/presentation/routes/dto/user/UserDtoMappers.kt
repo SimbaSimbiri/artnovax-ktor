@@ -2,11 +2,8 @@ package com.simbiri.presentation.routes.dto.user
 
 import com.simbiri.domain.model.common.UserId
 import com.simbiri.domain.model.social.SocialLink
-import com.simbiri.domain.model.social.SocialPlatform
-import com.simbiri.domain.model.social.SocialPlatformRegistry
 import com.simbiri.domain.model.user.User
 import com.simbiri.domain.model.user.UserType
-import com.simbiri.presentation.routes.dto.social.SocialLinkUpsertDto
 import com.simbiri.presentation.routes.dto.social.toDomain
 import com.simbiri.presentation.routes.dto.social.toResponseDto
 import java.time.Instant

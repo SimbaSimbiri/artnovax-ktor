@@ -24,7 +24,10 @@ data class User(
     val socialLinks: List<SocialLink>,
     val createdAt: Timestamp,
     val updatedAt: Timestamp,
-){
+) {
+    /**
+     * Delegates capability to UserType, the ssot for user role permissions
+     */
     val canExposeSocialLinks: Boolean
-        get() = type == UserType.PSYCHOLOGIST || type == UserType.ADMIN_EXEC || type == UserType.DEV
+        get() = type.canExposeSocialLinks
 }
