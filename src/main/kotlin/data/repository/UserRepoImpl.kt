@@ -14,7 +14,6 @@ import com.simbiri.data.mapper.user.toEntity
 import com.simbiri.data.mapper.user.toUserEntity
 import com.simbiri.data.repository.util.databaseError
 import com.simbiri.data.repository.util.foreignKeyError
-import com.simbiri.data.repository.util.parseUuidOrFailure
 import com.simbiri.data.repository.util.validationError
 import com.simbiri.domain.model.common.UserId
 import com.simbiri.domain.model.social.SocialLink
@@ -24,16 +23,10 @@ import com.simbiri.domain.repository.UserRepository
 import com.simbiri.domain.util.DataError
 import com.simbiri.domain.util.ResultType
 import org.jetbrains.exposed.dao.id.EntityID
-import org.jetbrains.exposed.sql.Database
-import org.jetbrains.exposed.sql.JoinType
-import org.jetbrains.exposed.sql.ResultRow
+import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
-import org.jetbrains.exposed.sql.deleteWhere
-import org.jetbrains.exposed.sql.insert
-import org.jetbrains.exposed.sql.selectAll
-import org.jetbrains.exposed.sql.update
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 
 class UserRepoImpl(
     private val db: Database,
@@ -110,8 +103,12 @@ class UserRepoImpl(
             .limit(1)
             .any()
 
+
     /**
-     * Validates database-dependent constraints before a write.
+     * Validates database-dependent constraints before a user write.
+     *
+     * Domain rules are enforced by UserPolicy in the application layer.
+     * This repository validates only constraints that require database access.
      *
      * This function must run inside dbQuery because it reads
      * SocialPlatformTable.
@@ -120,23 +117,6 @@ class UserRepoImpl(
         operation: String,
         user: User,
     ): DataError? {
-        /*
-         * Temporary defensive check:
-         *
-         * Existing routes still call the repository directly. Keep this
-         * check until UserRoutes has been migrated to the application
-         * use cases. It will then be removed because UserPolicy owns it.
-         */
-        if (!user.canExposeSocialLinks && user.socialLinks.isNotEmpty()) {
-            return validationError(
-                operation = operation,
-                field = "socialLinks",
-                value = "userType=${user.type}, " +
-                        "socialLinks.size=${user.socialLinks.size}",
-                reason = "This user type cannot expose social links."
-            )
-        }
-
         user.socialLinks.forEachIndexed { index, socialLink ->
             val platformId = socialLink.platform.id
 
@@ -446,88 +426,6 @@ class UserRepoImpl(
                 )
             )
         }
-    }
-
-    // -----------------------------------------------------------------
-    // Legacy API adapters
-    //
-    // Remove these after UserRoutes has been migrated to use cases and
-    // the legacy methods have been removed from UserRepository.
-    // -----------------------------------------------------------------
-
-    @Suppress("DEPRECATION")
-    override suspend fun getAllUsers(
-        userType: Int?,
-    ): ResultType<List<User>, DataError> {
-        val parsedType = userType?.let { code ->
-            UserType.fromCodeOrNull(code)
-                ?: return ResultType.Failure(
-                    validationError(
-                        operation = "getAllUsers",
-                        field = "userType",
-                        value = code.toString(),
-                        reason = "Unsupported user-type code."
-                    )
-                )
-        }
-
-        return getUsers(parsedType)
-    }
-
-    @Suppress("DEPRECATION")
-    override suspend fun getUserById(
-        userId: String?,
-    ): ResultType<User, DataError> {
-        val uuid = when (
-            val parsed = parseUuidOrFailure(
-                operation = "getUserById",
-                field = "userId",
-                value = userId,
-            )
-        ) {
-            is ResultType.Success -> parsed.data
-            is ResultType.Failure -> return parsed
-        }
-
-        return getUserById(
-            UserId(uuid)
-        )
-    }
-
-    @Suppress("DEPRECATION")
-    override suspend fun upsertUser(
-        userRec: User,
-    ): ResultType<Unit, DataError> =
-        if (userRec.id == null) {
-            createUser(userRec)
-        } else {
-            updateUser(userRec)
-        }
-
-    @Suppress("DEPRECATION")
-    override suspend fun insertUsersInBulk(
-        users: List<User>,
-    ): ResultType<Unit, DataError> =
-        createUsers(users)
-
-    @Suppress("DEPRECATION")
-    override suspend fun deleteUserById(
-        userId: String?,
-    ): ResultType<Unit, DataError> {
-        val uuid = when (
-            val parsed = parseUuidOrFailure(
-                operation = "deleteUserById",
-                field = "userId",
-                value = userId,
-            )
-        ) {
-            is ResultType.Success -> parsed.data
-            is ResultType.Failure -> return parsed
-        }
-
-        return deleteUserById(
-            UserId(uuid)
-        )
     }
 
     // -----------------------------------------------------------------

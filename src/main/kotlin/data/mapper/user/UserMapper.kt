@@ -6,10 +6,10 @@ import com.simbiri.domain.model.social.SocialLink
 import com.simbiri.domain.model.user.User
 import com.simbiri.domain.model.user.UserType
 import java.time.Instant
-import java.util.*
+import java.util.UUID
 
 fun UserEntity.toDomain(
-    socialLinks: List<SocialLink> = emptyList()
+    socialLinks: List<SocialLink> = emptyList(),
 ): User =
     User(
         id = UserId(id),
@@ -33,10 +33,10 @@ fun UserEntity.toDomain(
     )
 
 fun User.toEntity(
-    now: Instant = Instant.now(),
+    now: Instant,
 ): UserEntity =
     UserEntity(
-        id = this.id?.value ?: UUID.randomUUID(),
+        id = id?.value ?: UUID.randomUUID(),
         accountName = accountName,
         emailAddress = emailAddress,
         firstName = firstName,
@@ -51,6 +51,6 @@ fun User.toEntity(
         isPrivate = isPrivate,
         isAnonymous = isAnonymous,
         isActive = isActive,
-        createdAt = createdAt.takeIf { this.id != null } ?: now,
+        createdAt = createdAt ?: now,
         updatedAt = now,
     )

@@ -22,8 +22,14 @@ data class User(
     val isAnonymous: Boolean,
     val isActive: Boolean,
     val socialLinks: List<SocialLink>,
-    val createdAt: Timestamp,
-    val updatedAt: Timestamp,
+    /*
+    * These values are absent for users constructed from create or update
+    * requests. The persistence layer assigns them when the user is stored.
+    *
+    * Users loaded from the repository must contain both timestamps.
+    */
+    val createdAt: Timestamp? = null,
+    val updatedAt: Timestamp? = null,
 ) {
     /**
      * Delegates capability to UserType, the ssot for user role permissions

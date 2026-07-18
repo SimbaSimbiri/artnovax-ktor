@@ -6,84 +6,126 @@ import com.simbiri.domain.model.user.User
 import com.simbiri.domain.model.user.UserType
 import com.simbiri.presentation.routes.dto.social.toDomain
 import com.simbiri.presentation.routes.dto.social.toResponseDto
-import java.time.Instant
 import java.time.LocalDate
 import java.util.UUID
 
-
+/**
+ * Maps a persisted domain user to its API response representation.
+ *
+ * A user returned by the repository must contain an ID and persistence
+ * timestamps. Missing values indicate an internal lifecycle invariant
+ * violation.
+ */
 fun User.toResponseDto(): UserResponseDto {
-    val canShowSocials = canExposeSocialLinks && !isAnonymous
+    val persistedUserId = requireNotNull(id) {
+        "Cannot map user to UserResponseDto because user.id is null. " +
+                "accountName=$accountName, emailAddress=$emailAddress."
+    }
 
-    val socialRespDtos = if (canShowSocials) {
-        socialLinks.map { it.toResponseDto() }
+    val persistedCreatedAt = requireNotNull(createdAt) {
+        "Cannot map user to UserResponseDto because user.createdAt is null. " +
+                "userId=${persistedUserId.value}, accountName=$accountName."
+    }
+
+    val persistedUpdatedAt = requireNotNull(updatedAt) {
+        "Cannot map user to UserResponseDto because user.updatedAt is null. " +
+                "userId=${persistedUserId.value}, accountName=$accountName."
+    }
+
+    val canShowSocialLinks =
+        canExposeSocialLinks && !isAnonymous
+
+    val socialResponseDtos = if (canShowSocialLinks) {
+        socialLinks.map { socialLink ->
+            socialLink.toResponseDto()
+        }
     } else {
         emptyList()
     }
 
     return UserResponseDto(
-        id = id?.value.toString(),
+        id = persistedUserId.value.toString(),
         accountName = accountName,
         emailAddress = emailAddress,
         fullName = "$firstName $lastName",
         profileImageUrl = profileUrl,
         backgroundImageUrl = backgroundUrl,
         tagline = tagline,
-        about= about,
+        about = about,
         type = type.code,
         isAnonymous = isAnonymous,
         isActive = isActive,
         isPrivate = isPrivate,
         emailOptIn = emailOptIn,
-        createdAt = createdAt.toString(),
-        updatedAt = updatedAt.toString(),
-        socialLinks = socialRespDtos,
+        createdAt = persistedCreatedAt.toString(),
+        updatedAt = persistedUpdatedAt.toString(),
+        socialLinks = socialResponseDtos,
     )
 }
 
-fun List<User>.toResponseDto() = this.map { it.toResponseDto() }
+fun List<User>.toResponseDto(): List<UserResponseDto> =
+    map { user ->
+        user.toResponseDto()
+    }
 
-// added helpers for request DTOs
-fun UserUpsertDto.toDomainForCreate(now: Instant = Instant.now()): User =
+/**
+ * Maps a create-request DTO into an unpersisted domain user.
+ *
+ * IDs and persistence timestamps are intentionally absent.
+ */
+fun UserUpsertDto.toDomainForCreate(): User =
     toDomainInternal(
-        now = now,
         existingUserId = null,
     )
-fun List<UserUpsertDto>.toDomainForCreate() = this.map { it.toDomainForCreate() }
 
-fun UserUpsertDto.toDomainForUpdate(userId: UUID, now: Instant = Instant.now()): User =
+fun List<UserUpsertDto>.toDomainForCreate(): List<User> =
+    map { dto ->
+        dto.toDomainForCreate()
+    }
+
+/**
+ * Maps an update-request DTO into a domain user carrying the ID parsed from
+ * the HTTP path.
+ *
+ * Persistence timestamps remain absent because they are not supplied by the
+ * client and are managed by the repository.
+ */
+fun UserUpsertDto.toDomainForUpdate(
+    userId: UUID,
+): User =
     toDomainInternal(
-        now = now,
         existingUserId = userId,
     )
 
 private fun UserUpsertDto.toDomainInternal(
-    now: Instant,
     existingUserId: UUID?,
 ): User {
-    val birth = LocalDate.parse(birthDate)
-    val typeEnum = UserType.fromCode(type)
+    val parsedBirthDate = LocalDate.parse(birthDate)
+    val parsedUserType = UserType.fromCode(type)
 
-    val socialLinksDomain: List<SocialLink> =
-        socialLinks.mapNotNull { it.toDomain() }
+    val domainSocialLinks: List<SocialLink> =
+        socialLinks.mapNotNull { socialLinkDto ->
+            socialLinkDto.toDomain()
+        }
 
     return User(
-        id = existingUserId?.let { UserId(it) },
+        id = existingUserId?.let(::UserId),
         accountName = accountName,
         emailAddress = emailAddress,
-        birthDate = birth,
+        birthDate = parsedBirthDate,
         about = about,
         tagline = tagline,
         firstName = firstName,
         lastName = lastName,
         profileUrl = profileImageUrl,
         backgroundUrl = backgroundImageUrl,
-        type = typeEnum,
+        type = parsedUserType,
         emailOptIn = emailOptIn,
         isPrivate = isPrivate,
         isAnonymous = isAnonymous,
         isActive = isActive,
-        socialLinks = socialLinksDomain,
-        createdAt = now,
-        updatedAt = now,
+        socialLinks = domainSocialLinks,
+        createdAt = null,
+        updatedAt = null,
     )
 }

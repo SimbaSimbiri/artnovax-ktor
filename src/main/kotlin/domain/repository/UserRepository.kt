@@ -6,111 +6,62 @@ import com.simbiri.domain.model.user.UserType
 import com.simbiri.domain.util.DataError
 import com.simbiri.domain.util.ResultType
 
+/**
+ * Defines persistence operations available for the User aggregate.
+ *
+ * The repository now accepts domain types only:
+ * - UserId instead of raw UUID strings;
+ * - UserType instead of integer type codes;
+ * - explicit create and update operations instead of an inferred upsert.
+ *
+ * HTTP parsing, request validation, and DTO mapping belong to the
+ * presentation and application layers.
+ */
 interface UserRepository {
 
-    // -----------------------------------------------------------------
-    // Target repository API
-    // -----------------------------------------------------------------
-
     /**
-     * Retrieves all users, optionally filtered by a valid domain user type.
+     * Retrieves all users, optionally filtered by user type.
      */
     suspend fun getUsers(
         userType: UserType? = null,
-    ): ResultType<List<User>, DataError> =
-        getAllUsers(
-            userType = userType?.code,
-        )
+    ): ResultType<List<User>, DataError>
 
     /**
-     * Retrieves a user using a typed domain identifier.
+     * Retrieves one user by its typed domain identifier.
      */
     suspend fun getUserById(
         userId: UserId,
-    ): ResultType<User, DataError> =
-        getUserById(
-            userId = userId.value.toString(),
-        )
+    ): ResultType<User, DataError>
 
     /**
      * Persists a new user.
      *
-     * The application layer guarantees that user.id is null.
+     * The application layer must provide a user whose ID is null.
      */
     suspend fun createUser(
         user: User,
-    ): ResultType<Unit, DataError> =
-        upsertUser(user)
+    ): ResultType<Unit, DataError>
 
     /**
      * Persists changes to an existing user.
      *
-     * The application layer guarantees that user.id is non-null.
+     * The application layer must provide a user whose ID is non-null.
      */
     suspend fun updateUser(
         user: User,
-    ): ResultType<Unit, DataError> =
-        upsertUser(user)
+    ): ResultType<Unit, DataError>
 
     /**
-     * Creates multiple users in a single transactional operation.
+     * Creates multiple users in one transactional operation.
      */
     suspend fun createUsers(
         users: List<User>,
-    ): ResultType<Unit, DataError> =
-        insertUsersInBulk(users)
+    ): ResultType<Unit, DataError>
 
     /**
-     * Deletes a user using a typed domain identifier.
+     * Deletes one user using its typed domain identifier.
      */
     suspend fun deleteUserById(
         userId: UserId,
-    ): ResultType<Unit, DataError> =
-        deleteUserById(
-            userId = userId.value.toString(),
-        )
-
-    // -----------------------------------------------------------------
-    // Legacy repository API
-    //
-    // These methods remain temporarily so UserRepoImpl and the existing
-    // routes continue compiling while the user pipeline is migrated.
-    // They will be removed after the implementation and callers use the
-    // typed API above.
-    // -----------------------------------------------------------------
-
-    @Deprecated(
-        message = "Use getUsers(UserType?) instead.",
-    )
-    suspend fun getAllUsers(
-        userType: Int?,
-    ): ResultType<List<User>, DataError>
-
-    @Deprecated(
-        message = "Use getUserById(UserId) instead.",
-    )
-    suspend fun getUserById(
-        userId: String?,
-    ): ResultType<User, DataError>
-
-    @Deprecated(
-        message = "Use createUser(User) or updateUser(User) instead.",
-    )
-    suspend fun upsertUser(
-        userRec: User,
-    ): ResultType<Unit, DataError>
-
-    @Deprecated(
-        message = "Use createUsers(List<User>) instead.",
-    )
-    suspend fun insertUsersInBulk(
-        users: List<User>,
-    ): ResultType<Unit, DataError>
-
-    @Deprecated(
-        message = "Use deleteUserById(UserId) instead.",
-    )
-    suspend fun deleteUserById(
-        userId: String?,
     ): ResultType<Unit, DataError>
 }
