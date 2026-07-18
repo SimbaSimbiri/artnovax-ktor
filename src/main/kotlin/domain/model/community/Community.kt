@@ -20,6 +20,12 @@ data class Community(
     val category: String?,
     val approved: Boolean,
     val socialLinks: List<SocialLink>,
-    val createdAt: Timestamp,
-    val updatedAt: Timestamp,
+    /*
+    * These values are persistence-managed lifecycle metadata.
+    *
+    * Communities created from HTTP requests have null timestamps.
+    * Communities loaded from the repository contain both values.
+    */
+    val createdAt: Timestamp? = null,
+    val updatedAt: Timestamp? = null,
 )

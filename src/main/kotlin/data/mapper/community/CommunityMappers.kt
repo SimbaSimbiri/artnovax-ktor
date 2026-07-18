@@ -31,11 +31,17 @@ fun CommunityEntity.toDomain(
         updatedAt = updatedAt,
     )
 
+/**
+ * Maps a community into its persistence representation.
+ *
+ * The caller supplies the transaction timestamp explicitly. This prevents
+ * the mapper from reading the system clock independently of the repository.
+ */
 fun Community.toEntity(
-    now: Instant = Instant.now(),
+    now: Instant,
 ): CommunityEntity =
     CommunityEntity(
-        id = this.id?.value ?: UUID.randomUUID(),
+        id = id?.value ?: UUID.randomUUID(),
         ownerId = ownerId.value,
         name = name,
         description = description,
@@ -48,6 +54,6 @@ fun Community.toEntity(
         privatePosts = privatePosts,
         category = category,
         approved = approved,
-        createdAt = createdAt.takeIf { this.id != null } ?: now,
+        createdAt = createdAt ?: now,
         updatedAt = now,
     )

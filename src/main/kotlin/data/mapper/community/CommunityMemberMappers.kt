@@ -13,6 +13,7 @@ fun CommunityMemberEntity.toDomain(): CommunityMember =
         communityId = CommunityId(communityId),
         joinedAt = joinedAt,
         leftAt = leftAt,
-        userTypeAtJoin = userTypeAtJoinCode?.let{ UserType.fromCode(it) },
-        commParticipantRole = CommunityParticipantRole.valueOf(commParticipantRole),
+        userTypeAtJoin = userTypeAtJoinCode?.let(UserType::fromCode),
+        commParticipantRole =
+            CommunityParticipantRole.fromName(commParticipantRole),
     )

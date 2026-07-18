@@ -8,7 +8,12 @@ import java.util.UUID
 
 fun CommunitySocialLinkEntity.toDomain(): SocialLink {
     val platform = SocialPlatformRegistry.byId[platformId]
-        ?: error("Unknown SocialPlatform id: $platformId")
+        ?: throw IllegalStateException(
+            "Cannot map CommunitySocialLinkEntity to domain. " +
+                    "SocialPlatformRegistry does not contain " +
+                    "platformId=$platformId. " +
+                    "communityId=$communityId, socialLinkId=$id."
+        )
 
     return SocialLink(
         platform = platform,
@@ -19,7 +24,7 @@ fun CommunitySocialLinkEntity.toDomain(): SocialLink {
 
 fun SocialLink.toCommunitySocialLinkEntity(
     communityId: UUID,
-    createdAt: Instant = Instant.now(),
+    createdAt: Instant,
 ): CommunitySocialLinkEntity =
     CommunitySocialLinkEntity(
         id = UUID.randomUUID(),
