@@ -12,91 +12,157 @@ Where the client creates a **sanctuary for creativity**, the backend quietly kee
 At a high level, the ArtNovaX backend is responsible for:
 
 1. **Auth & Accounts**
-   - User registration & login
-   - JWT-based authentication for the mobile client
-   - Basic profile/mood preferences (where needed for recommendations)
-   
+    - User registration and login
+    - JWT-based authentication for the mobile client
+    - Basic profile and mood preferences where needed for recommendations
 
 2. **Therapy Modules & Content**
-   - Serving **guided art therapy modules** as JSON (steps, timing, prompts, assets)
-   - Tagging modules by goals: _grounding_, _stress relief_, _processing emotion_, etc.
-   - Supporting content packs (e.g. “Ubuntu Flow”, “Grounding Through Color”)
-
+    - Serving guided art therapy modules as JSON, including steps, timing, prompts, and assets
+    - Tagging modules by goals such as _grounding_, _stress relief_, and _processing emotion_
+    - Supporting content packs such as “Ubuntu Flow” and “Grounding Through Color”
 
 3. **Sessions & Progress**
-   - Recording session starts/completions, duration, and optional mood check-ins
-   - Tracking streaks & total time for “My Journey” views in the app
-   - Exposing summary stats for lightweight progress visuals
-
+    - Recording session starts, completions, duration, and optional mood check-ins
+    - Tracking streaks and total time for “My Journey” views
+    - Exposing summary statistics for lightweight progress visuals
 
 4. **Recommendations & Personalization**
-   - Rule-based recommendations (e.g., gentler content when mood is low)
-   - Simple “Why recommended” explanation strings
-   - Room to plug in more advanced logic later (e.g., ML-driven recs)
+    - Rule-based recommendations, such as gentler content when mood is low
+    - Simple “Why recommended” explanations
+    - Support for more advanced ML-driven recommendations later
 
-
-5. **Telemetry & Analytics (Privacy-Respecting)**
-   - Logging non-identifying events (e.g., `session_start`, `session_end`)
-   - No raw video/audio storage for emotion detection — those stay on-device
-   - Data retention rules to avoid hoarding sensitive information
-
+5. **Telemetry & Analytics**
+    - Logging non-identifying events such as `session_start` and `session_end`
+    - Keeping raw video and audio used for emotion detection on-device
+    - Applying retention rules to avoid storing unnecessary sensitive information
 
 ---
 
 ## 📐 Non-Functional Goals
 
-The backend is designed with a few key qualities in mind:
-
 ### Performance & Reliability
 
 - Target p95 latency:
-  - Reads: **< 200 ms**
-  - Writes: **< 400 ms** (under expected load)
-- Deployed behind a load balancer, with health checks and auto-restart on failure
-- Centralized logging & metrics for debugging and observability
+    - Reads: **< 200 ms**
+    - Writes: **< 400 ms** under expected load
+- Health checks and automatic restart on failure
+- Centralized logging and metrics for debugging and observability
 
 ### Security & Privacy
 
 - HTTPS-only in production
-- JWT for auth, short-lived tokens, refresh strategy TBD
-- Secrets (JWT keys, DB creds) managed via environment/secret manager (not in Git)
-- No storage of raw camera/video/audio; only summarized emotion or mood signals if/when needed
-- Data export/delete endpoints planned to support user privacy controls
+- JWT authentication with short-lived tokens
+- Secrets managed through environment variables or a secret manager
+- No storage of raw camera, video, or audio data
+- Planned data export and deletion endpoints
 
 ### Data Retention
 
-- Session & telemetry data retained for limited windows (e.g., 12–18 months) for insights and improvement
-- Beyond retention window, older analytics are anonymized or purged
+- Session and telemetry data retained only for defined periods
+- Older analytics anonymized or deleted after the retention window
+
+---
+
+## 🧭 Architecture
+
+The backend follows a layered request flow:
+
+```text
+HTTP Request
+    ↓
+Ktor Route
+    ↓
+Request Validation and DTO Mapping
+    ↓
+Application Use Case
+    ↓
+Domain Policy
+    ↓
+Repository Interface
+    ↓
+Repository Implementation
+    ↓
+Exposed Transaction
+    ↓
+PostgreSQL
+```
+
+Responses and errors travel back through the same layers in reverse.
+
+Each layer has a focused responsibility:
+
+- **Presentation:** HTTP routes, DTOs, parameter parsing, and responses
+- **Application:** use cases representing operations such as creating or updating a user
+- **Domain:** business models and validation policies
+- **Repository:** typed persistence contracts
+- **Data:** Exposed queries, transactions, database entities, and mappings
+
+Koin connects the layers through dependency injection. Routes receive application use cases rather than accessing repositories directly.
+
+### User Aggregate
+
+`User` is an aggregate root that owns the user profile and its social links.
+
+```text
+User
+└── User Social Links
+```
+
+A typical user creation request follows this direction:
+
+```text
+POST /users
+    ↓
+UserUpsertDto
+    ↓
+User Domain Model
+    ↓
+CreateUserUseCase
+    ↓
+UserPolicy
+    ↓
+UserRepository.createUser
+    ↓
+UserRepoImpl Transaction
+    ├── Validate social-platform references
+    ├── Insert the user
+    └── Insert social links
+    ↓
+HTTP 201 Created
+```
+
+The application uses typed values such as `UserId` and `UserType` instead of passing raw UUID strings or integer codes into the repository layer.
 
 ---
 
 ## 🧱 Tech Stack
 
-**Language & Framework**
+### Language & Framework
 
 - Kotlin
 - [Ktor](https://ktor.io) Server
 
-**Core Libraries / Features**
+### Core Libraries and Features
 
-- **Routing** & **Resources** for type-safe endpoints
+- **Routing** and **Resources** for type-safe endpoints
 - **Status Pages** for centralized error handling
-- **Content Negotiation** + `kotlinx.serialization` (JSON)
-- **Request Validation** for payloads
+- **Content Negotiation** with `kotlinx.serialization`
+- **Request Validation** for incoming payloads
 - **Koin** for dependency injection
+- **Exposed** for database access
 
-**Infrastructure Targets**
+### Infrastructure Targets
 
 - **AWS Elastic Beanstalk**
 - **Aurora PostgreSQL**
 
-**ML / AI Integration**
+### ML / AI Integration
 
-- Python for training emotion/recommendation models (out of band)
-- On-device models (TFLite) preferred for affect detection to avoid streaming sensitive data
-- Backend may provide:
-  - configuration flags
-  - model metadata
-  - non-sensitive recommendation logic
+- Python for training emotion and recommendation models
+- On-device models such as TFLite preferred for affect detection
+- Backend support for:
+    - configuration flags
+    - model metadata
+    - non-sensitive recommendation logic
 
 ---
