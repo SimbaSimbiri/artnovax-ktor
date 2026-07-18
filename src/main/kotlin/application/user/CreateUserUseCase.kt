@@ -38,12 +38,7 @@ class CreateUserUseCase(private val userRepository: UserRepository, private val 
             return ResultType.Failure(validationError)
         }
 
-        /*
-         * Transitional call:
-         *
-         * We will replace this with createUser() when we refactor
-         * UserRepository and UserRepoImpl.
-         */
+
         return userRepository.createUser(user)
     }
 }
