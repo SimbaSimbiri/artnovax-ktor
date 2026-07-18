@@ -4,7 +4,7 @@ import com.simbiri.domain.model.common.ModuleId
 import com.simbiri.domain.model.common.Timestamp
 import com.simbiri.domain.model.common.UserId
 
-data class UserModule(
+data class TherapyModuleProgress(
     val moduleId: ModuleId,
     val userId: UserId,
     val progress: Double,
