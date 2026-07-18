@@ -9,202 +9,67 @@ import com.simbiri.domain.model.community.CommunityParticipantRole
 import com.simbiri.domain.util.DataError
 import com.simbiri.domain.util.ResultType
 
+/**
+ * Defines persistence operations for the Community aggregate and its
+ * memberships.
+ *
+ * The repository accepts typed domain values only. HTTP strings, DTOs,
+ * request parsing, and response behavior belong to presentation.
+ */
 interface CommunityRepository {
 
-    // -----------------------------------------------------------------
-    // Target typed community API
-    // -----------------------------------------------------------------
+    // Community operations
 
     suspend fun getCommunities(
         approved: Boolean? = null,
         ownerId: UserId? = null,
-    ): ResultType<List<Community>, DataError> =
-        getAllCommunities(
-            approved = approved,
-            ownerId = ownerId?.value?.toString(),
-        )
+    ): ResultType<List<Community>, DataError>
 
     suspend fun getCommunityById(
         communityId: CommunityId,
-    ): ResultType<Community, DataError> =
-        getCommunityById(
-            communityId = communityId.value.toString(),
-        )
+    ): ResultType<Community, DataError>
 
-    /**
-     * Creates a community.
-     *
-     * The final persistence implementation must create the community and its
-     * OWNER membership in one transaction.
-     */
     suspend fun createCommunity(
         community: Community,
-    ): ResultType<Unit, DataError> =
-        upsertCommunity(community)
+    ): ResultType<Unit, DataError>
 
-    /**
-     * Updates an existing community.
-     *
-     * The final persistence implementation must synchronize ownership when
-     * community.ownerId changes.
-     */
     suspend fun updateCommunity(
         community: Community,
-    ): ResultType<Unit, DataError> =
-        upsertCommunity(community)
+    ): ResultType<Unit, DataError>
 
     suspend fun createCommunities(
         communities: List<Community>,
-    ): ResultType<Unit, DataError> =
-        insertCommunitiesInBulk(communities)
+    ): ResultType<Unit, DataError>
 
     suspend fun deleteCommunityById(
         communityId: CommunityId,
-    ): ResultType<Unit, DataError> =
-        deleteCommunityById(
-            communityId = communityId.value.toString(),
-        )
+    ): ResultType<Unit, DataError>
 
-    // -----------------------------------------------------------------
-    // Target typed membership API
-    // -----------------------------------------------------------------
+    // Membership operations
 
     suspend fun getMembers(
         communityId: CommunityId,
-    ): ResultType<List<CommunityMember>, DataError> =
-        listMembers(
-            communityId = communityId.value.toString(),
-        )
+    ): ResultType<List<CommunityMember>, DataError>
 
     suspend fun addMember(
         communityId: CommunityId,
         userId: UserId,
         role: CommunityParticipantRole,
-    ): ResultType<Unit, DataError> =
-        upsertMember(
-            communityId = communityId.value.toString(),
-            userId = userId.value.toString(),
-            role = role,
-        )
+    ): ResultType<Unit, DataError>
 
     suspend fun updateMemberRole(
         communityId: CommunityId,
         userId: UserId,
         role: CommunityParticipantRole,
-    ): ResultType<Unit, DataError> =
-        upsertMember(
-            communityId = communityId.value.toString(),
-            userId = userId.value.toString(),
-            role = role,
-        )
+    ): ResultType<Unit, DataError>
 
-    /**
-     * Temporary compatibility implementation.
-     *
-     * CommunityRepoImpl will override this in Phase 2 so the complete batch
-     * runs in one transaction.
-     */
     suspend fun addMembers(
         communityId: CommunityId,
         assignments: List<CommunityMemberAssignment>,
-    ): ResultType<Unit, DataError> {
-        for (assignment in assignments) {
-            when (
-                val result = upsertMember(
-                    communityId = communityId.value.toString(),
-                    userId = assignment.userId.value.toString(),
-                    role = assignment.role,
-                )
-            ) {
-                is ResultType.Success -> Unit
-                is ResultType.Failure -> return result
-            }
-        }
-
-        return ResultType.Success(Unit)
-    }
+    ): ResultType<Unit, DataError>
 
     suspend fun removeMember(
         communityId: CommunityId,
         userId: UserId,
-    ): ResultType<Unit, DataError> =
-        removeMember(
-            communityId = communityId.value.toString(),
-            userId = userId.value.toString(),
-        )
-
-    // -----------------------------------------------------------------
-    // Legacy API
-    //
-    // Retain temporarily while CommunityRepoImpl and CommunityRoutes are
-    // migrated. Remove these methods after Phases 2 and 3.
-    // -----------------------------------------------------------------
-
-    @Deprecated(
-        message = "Use getCommunities(Boolean?, UserId?) instead.",
-    )
-    suspend fun getAllCommunities(
-        approved: Boolean? = null,
-        ownerId: String? = null,
-    ): ResultType<List<Community>, DataError>
-
-    @Deprecated(
-        message = "Use getCommunityById(CommunityId) instead.",
-    )
-    suspend fun getCommunityById(
-        communityId: String?,
-    ): ResultType<Community, DataError>
-
-    @Deprecated(
-        message = "Use createCommunity(Community) or updateCommunity(Community).",
-    )
-    suspend fun upsertCommunity(
-        community: Community,
-    ): ResultType<Unit, DataError>
-
-    @Deprecated(
-        message = "Use deleteCommunityById(CommunityId) instead.",
-    )
-    suspend fun deleteCommunityById(
-        communityId: String?,
-    ): ResultType<Unit, DataError>
-
-    @Deprecated(
-        message = "Use createCommunities(List<Community>) instead.",
-    )
-    suspend fun insertCommunitiesInBulk(
-        communities: List<Community>,
-    ): ResultType<Unit, DataError>
-
-    @Deprecated(
-        message = "Use getMembers(CommunityId) instead.",
-    )
-    suspend fun listMembers(
-        communityId: String?,
-    ): ResultType<List<CommunityMember>, DataError>
-
-    @Deprecated(
-        message = "Use addMember(...) or updateMemberRole(...) instead.",
-    )
-    suspend fun upsertMember(
-        communityId: String?,
-        userId: String?,
-        role: CommunityParticipantRole,
-    ): ResultType<Unit, DataError>
-
-    @Deprecated(
-        message = "Use addMembers(CommunityId, assignments) instead.",
-    )
-    suspend fun upsertMembersInBulk(
-        communityId: String?,
-        members: List<CommunityMember>,
-    ): ResultType<Unit, DataError>
-
-    @Deprecated(
-        message = "Use removeMember(CommunityId, UserId) instead.",
-    )
-    suspend fun removeMember(
-        communityId: String?,
-        userId: String?,
     ): ResultType<Unit, DataError>
 }

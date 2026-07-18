@@ -9,11 +9,12 @@ data class CommunityUpsertDto(
     val name: String,
     val description: String,
     val profileUrl: String? = null,
+    val chatBackgroundUrl: String? = null,
     val tagline: String,
     val privateEvents: Boolean = true,
     val privatePosts: Boolean = true,
     val category: String? = null,
-    val joinPermission: Int,        // 0 = AUTO, 1 = APPROVAL
+    val joinPermission: Int,
     val approved: Boolean = false,
     val socialLinks: List<SocialLinkUpsertDto> = emptyList(),
 )

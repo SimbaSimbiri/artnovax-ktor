@@ -1,67 +1,118 @@
 package com.simbiri.presentation.routes.dto.community
 
 import com.simbiri.domain.model.common.CommunityId
-import com.simbiri.domain.model.common.Timestamp
 import com.simbiri.domain.model.common.UserId
 import com.simbiri.domain.model.community.Community
 import com.simbiri.domain.model.community.CommunityMember
-import com.simbiri.domain.model.community.JoinPermission
+import com.simbiri.domain.model.community.CommunityMemberAssignment
 import com.simbiri.domain.model.community.CommunityParticipantRole
+import com.simbiri.domain.model.community.JoinPermission
 import com.simbiri.domain.model.social.SocialLink
 import com.simbiri.presentation.routes.dto.social.toDomain
 import com.simbiri.presentation.routes.dto.social.toResponseDto
-import java.time.Instant
-import java.util.*
 
+/**
+ * Maps a create-request DTO into an unpersisted community.
+ */
+fun CommunityUpsertDto.toDomainForCreate(
+    ownerId: UserId,
+    joinPermission: JoinPermission,
+): Community =
+    toDomainInternal(
+        communityId = null,
+        ownerId = ownerId,
+        joinPermission = joinPermission,
+    )
 
-fun CommunityUpsertDto.toDomain(
-    existingId: String? = null,
-    now: Instant = Timestamp.now(),
+/**
+ * Maps an update-request DTO into a domain community.
+ */
+fun CommunityUpsertDto.toDomainForUpdate(
+    communityId: CommunityId,
+    ownerId: UserId,
+    joinPermission: JoinPermission,
+): Community =
+    toDomainInternal(
+        communityId = communityId,
+        ownerId = ownerId,
+        joinPermission = joinPermission,
+    )
+
+private fun CommunityUpsertDto.toDomainInternal(
+    communityId: CommunityId?,
+    ownerId: UserId,
+    joinPermission: JoinPermission,
 ): Community {
-    val ownerUuid = UUID.fromString(ownerId)
-
-    val socialDomain: List<SocialLink> =
-        socialLinks.mapNotNull { it.toDomain() }
+    val domainSocialLinks: List<SocialLink> =
+        socialLinks.mapIndexed { index, socialLinkDto ->
+            requireNotNull(socialLinkDto.toDomain()) {
+                "Cannot map CommunityUpsertDto to domain because " +
+                        "socialLinks[$index] references an unsupported " +
+                        "platform. platformId=${socialLinkDto.platformId}, " +
+                        "communityId=$communityId, communityName=$name."
+            }
+        }
 
     return Community(
-        id = existingId?.let { CommunityId(UUID.fromString(it)) },
-        ownerId = UserId(ownerUuid),
+        id = communityId,
+        ownerId = ownerId,
         name = name.trim(),
         description = description.trim(),
         profileUrl = profileUrl,
-        memberCount = 0, // derived via membership join table
-        joinPermission = JoinPermission.fromCode(joinPermission),
-        chatBackgroundUrl = null,
+        memberCount = 0,
+        joinPermission = joinPermission,
+        chatBackgroundUrl = chatBackgroundUrl,
         tagline = tagline.trim(),
         privateEvents = privateEvents,
         privatePosts = privatePosts,
-        category = category,
+        category = category?.trim(),
         approved = approved,
-        socialLinks = socialDomain,
-        createdAt = now,
-        updatedAt = now,
+        socialLinks = domainSocialLinks,
+        createdAt = null,
+        updatedAt = null,
     )
 }
 
-fun CommunityMemberUpsertDto.toDomain(
-    communityId: CommunityId,
-    joinedAt: Timestamp = Instant.now(),
-): CommunityMember {
-    return CommunityMember(
-        userId = UserId(UUID.fromString(userId)),
-        communityId = communityId,
-        joinedAt = joinedAt,
-        leftAt = null,
-        userTypeAtJoin = null, // you can later populate this from User.userType if you want
-        commParticipantRole = CommunityParticipantRole.valueOf(commParticipantRole),
+/**
+ * Maps a member request into a write-intent model.
+ *
+ * Persistence-managed membership metadata is deliberately absent.
+ */
+fun CommunityMemberUpsertDto.toAssignment(
+    userId: UserId,
+    role: CommunityParticipantRole,
+): CommunityMemberAssignment =
+    CommunityMemberAssignment(
+        userId = userId,
+        role = role,
     )
-}
-fun CommunityMemberUpsertDto.toRole(): CommunityParticipantRole =
-    CommunityParticipantRole.valueOf(commParticipantRole.uppercase())
 
-fun Community.toCommResponseDto(): CommunityResponseDto =
-    CommunityResponseDto(
-        id = id?.value.toString(),
+/**
+ * Maps a persisted community into its API response.
+ */
+fun Community.toCommResponseDto(): CommunityResponseDto {
+    val persistedCommunityId = requireNotNull(id) {
+        "Cannot map Community to CommunityResponseDto because " +
+                "community.id is null. " +
+                "communityName=$name, ownerId=${ownerId.value}."
+    }
+
+    val persistedCreatedAt = requireNotNull(createdAt) {
+        "Cannot map Community to CommunityResponseDto because " +
+                "community.createdAt is null. " +
+                "communityId=${persistedCommunityId.value}, " +
+                "communityName=$name."
+    }
+
+    val persistedUpdatedAt = requireNotNull(updatedAt) {
+        "Cannot map Community to CommunityResponseDto because " +
+                "community.updatedAt is null. " +
+                "communityId=${persistedCommunityId.value}, " +
+                "communityName=$name."
+    }
+
+    return CommunityResponseDto(
+        id = persistedCommunityId.value.toString(),
         ownerId = ownerId.value.toString(),
         name = name,
         description = description,
@@ -74,13 +125,18 @@ fun Community.toCommResponseDto(): CommunityResponseDto =
         category = category,
         joinPermission = joinPermission.name,
         approved = approved,
-        createdAt = createdAt.toString(),
-        updatedAt = updatedAt.toString(),
-        socialLinks = socialLinks.map { it.toResponseDto() },
+        createdAt = persistedCreatedAt.toString(),
+        updatedAt = persistedUpdatedAt.toString(),
+        socialLinks = socialLinks.map { socialLink ->
+            socialLink.toResponseDto()
+        },
     )
+}
 
 fun List<Community>.toCommResponseDto(): List<CommunityResponseDto> =
-    this.map { it.toCommResponseDto() }
+    map { community ->
+        community.toCommResponseDto()
+    }
 
 fun CommunityMember.toMembersResponseDto(): CommunityMemberResponseDto =
     CommunityMemberResponseDto(
@@ -92,5 +148,8 @@ fun CommunityMember.toMembersResponseDto(): CommunityMemberResponseDto =
         participantRole = commParticipantRole.name,
     )
 
-fun List<CommunityMember>.toMembersResponseDto(): List<CommunityMemberResponseDto> =
-    this.map { it.toMembersResponseDto() }
+fun List<CommunityMember>.toMembersResponseDto():
+        List<CommunityMemberResponseDto> =
+    map { member ->
+        member.toMembersResponseDto()
+    }
