@@ -5,8 +5,20 @@ enum class JoinPermission(val code: Int) {
     APPROVAL(1);  // requires moderator/owner approval
 
     companion object {
-        fun fromCode(code: Int): JoinPermission =
-            entries.firstOrNull { it.code == code }
-                ?: error("Unknown join permission code: $code")
+
+        fun fromCodeOrNull(
+            code: Int,
+        ): JoinPermission? =
+            entries.firstOrNull { permission ->
+                permission.code == code
+            }
+
+        fun fromCode(
+            code: Int,
+        ): JoinPermission =
+            fromCodeOrNull(code)
+                ?: throw IllegalArgumentException(
+                    "Unsupported community join-permission code: $code."
+                )
     }
 }
