@@ -11,6 +11,9 @@ import org.koin.core.module.dsl.singleOf
 import org.koin.dsl.bind
 import org.koin.dsl.module
 
+/**
+ * Contains only infrastructure level dependencies
+ */
 val dataModule = module {
     // our single rds db instance
     single<Database> { DatabaseFactory.create() }
