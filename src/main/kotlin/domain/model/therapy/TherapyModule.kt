@@ -1,23 +1,56 @@
 package com.simbiri.domain.model.therapy
 
-import com.simbiri.domain.model.common.ModuleId
-import com.simbiri.domain.model.common.SessionId
+import com.simbiri.domain.model.common.TherapyModuleId
 import com.simbiri.domain.model.common.Timestamp
 
+/**
+ * One ordered, executable step within a TherapySession.
+ *
+ * The parent session owns the module. The parent TherapySessionId is
+ * therefore represented by the aggregate relationship rather than
+ * duplicated inside this domain child.
+ *
+ * Persistence entities may still contain a therapy_session_id foreign
+ * key.
+ */
 data class TherapyModule(
-    val id: ModuleId? = null,
-    val sessionId: SessionId,
-    val orderIndex: Int, // if it's within a TherapySession recommended for higher pHQ, prioritize AFFIRMATION and BREATHING modules
+    val id: TherapyModuleId? = null,
+
+    /**
+     * Zero-based position inside the parent session.
+     */
+    val orderIndex: Int,
+
     val title: String,
+
+    /**
+     * A brief description of what the user should gain from this step.
+     */
+    val goal: String,
+
+    /**
+     * The guidance shown or narrated to the user.
+     */
     val instructions: String,
-    val moduleType: ModuleType,
-    val primaryMediaType: MediaType, // if module type is Breathing, MediaType will be VIDEO, if doodling, CANVAS
-    val primaryMediaUrl: String?,
-    val backgroundAudioUrl: String?, // to enhance sole therapeutic effect, we can put background narrator for affirmations
-    val backgroundVideoUrl: String?,
-    val backgroundImageUrl: String?,
-    val avgRating: Double?, // this will be aggregated from TherapyModuleProgress.Rating
-    val avgCompletionTimeMins: Double?, // this will be aggregate from TherapyModuleProgress.startedAt - TherapyModuleProgress.completedAt
-    val createdAt: Timestamp,
-    val updatedAt: Timestamp,
+
+    /**
+     * Plain-language explanation of the therapeutic purpose.
+     */
+    val whyThisHelps: String,
+
+    /**
+     * Determines which client-side interaction engine should render the
+     * module.
+     */
+    val modality: TherapyModality,
+
+    val estimatedDurationSeconds: Int,
+
+    val isSkippable: Boolean = false,
+    val isRepeatable: Boolean = true,
+
+    val assets: List<TherapyAsset> = emptyList(),
+
+    val createdAt: Timestamp? = null,
+    val updatedAt: Timestamp? = null,
 )

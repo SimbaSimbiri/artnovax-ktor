@@ -11,10 +11,19 @@ value class UserId(val value: UUID)
 value class CommunityId(val value: UUID)
 
 @JvmInline
-value class SessionId(val value: UUID)
+value class TherapySessionId(val value: UUID)
 
 @JvmInline
-value class ModuleId(val value: UUID)
+value class TherapyModuleId(val value: UUID)
+
+@JvmInline
+value class TherapyAssetId(val value: UUID)
+
+@JvmInline
+value class TherapySessionRunId(val value: UUID)
+
+@JvmInline
+value class TherapyModuleProgressId(val value: UUID)
 
 @JvmInline
 value class ArtworkId(val value: UUID)

@@ -1,11 +1,11 @@
 package com.simbiri.domain.model.therapy
 
-import com.simbiri.domain.model.common.ModuleId
+import com.simbiri.domain.model.common.TherapyModuleId
 import com.simbiri.domain.model.common.Timestamp
 import com.simbiri.domain.model.common.UserId
 
 data class TherapyModuleProgress(
-    val moduleId: ModuleId,
+    val therapyModuleId: TherapyModuleId,
     val userId: UserId,
     val progress: Double,
     val rating: Double?,
