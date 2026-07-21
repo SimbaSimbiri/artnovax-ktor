@@ -36,4 +36,13 @@ data class User(
      */
     val canExposeSocialLinks: Boolean
         get() = type.canExposeSocialLinks
+
+    val canAuthorTherapyContent: Boolean
+        get() = type.canAuthorTherapyContent
+
+    val canReviewTherapyContent: Boolean
+        get() = type.canReviewTherapyContent
+
+    val canPublishTherapyContent: Boolean
+        get() = type.canPublishTherapyContent
 }
