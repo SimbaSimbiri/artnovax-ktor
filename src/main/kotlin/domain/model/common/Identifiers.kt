@@ -13,6 +13,18 @@ value class CommunityId(val value: UUID)
 @JvmInline
 value class TherapySessionId(val value: UUID)
 
+/**
+ * An identifier shared by every version of the same authored
+ * therapy session. e.g:
+ *
+ * seriesId = A, version = 1
+ * seriesId = A, version = 2
+ */
+@JvmInline
+value class TherapySessionSeriesId(
+    val value: UUID,
+)
+
 @JvmInline
 value class TherapyModuleId(val value: UUID)
 

@@ -222,6 +222,26 @@ object TherapyContentPolicy {
                 )
             }
 
+            session.id != null &&
+                    session.seriesId == null -> {
+                validationError(
+                    field = "seriesId",
+                    value = session.seriesId,
+                    reason = "A persisted therapy session must belong to a " +
+                            "therapy-session series."
+                )
+            }
+
+            session.version > 1 &&
+                    session.seriesId == null -> {
+                validationError(
+                    field = "seriesId",
+                    value = session.seriesId,
+                    reason = "A therapy-session version greater than one must " +
+                            "reference an existing therapy-session series."
+                )
+            }
+
             session.cultureTags.size >
                     MAX_CULTURE_TAG_COUNT -> {
                 validationError(

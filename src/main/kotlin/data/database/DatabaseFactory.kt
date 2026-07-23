@@ -5,6 +5,12 @@ import com.simbiri.data.database.entity.community.CommunitySocialLinkTable
 import com.simbiri.data.database.entity.community.CommunityTable
 import com.simbiri.data.database.entity.social.SocialLinkTable
 import com.simbiri.data.database.entity.social.SocialPlatformTable
+import com.simbiri.data.database.entity.therapy.TherapyAssetTable
+import com.simbiri.data.database.entity.therapy.TherapyModuleTable
+import com.simbiri.data.database.entity.therapy.TherapySessionContraindicationTable
+import com.simbiri.data.database.entity.therapy.TherapySessionCultureTagTable
+import com.simbiri.data.database.entity.therapy.TherapySessionGoalTable
+import com.simbiri.data.database.entity.therapy.TherapySessionTable
 import com.simbiri.data.database.entity.user.UserTable
 import com.simbiri.data.database.utils.seedSocialPlatforms
 import com.simbiri.data.util.*
@@ -48,9 +54,17 @@ object DatabaseFactory {
                 UserTable,
                 SocialPlatformTable,
                 SocialLinkTable,
+
                 CommunityTable,
                 CommunityMemberTable,
-                CommunitySocialLinkTable
+                CommunitySocialLinkTable,
+
+                TherapySessionTable,
+                TherapyModuleTable,
+                TherapyAssetTable,
+                TherapySessionGoalTable,
+                TherapySessionContraindicationTable,
+                TherapySessionCultureTagTable,
             )
             // we provide the initial social platform tables to prevent exceptions
             // in creating a user's social links for the first time

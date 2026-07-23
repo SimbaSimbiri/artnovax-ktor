@@ -1,6 +1,7 @@
 package com.simbiri.domain.model.therapy
 
 import com.simbiri.domain.model.common.TherapySessionId
+import com.simbiri.domain.model.common.TherapySessionSeriesId
 import com.simbiri.domain.model.common.Timestamp
 import com.simbiri.domain.model.common.UserId
 
@@ -13,6 +14,13 @@ import com.simbiri.domain.model.common.UserId
  */
 data class TherapySession(
     val id: TherapySessionId? = null,
+    /**
+     * Shared by every version of the same authored therapy session.
+     *
+     * It is null for a new, unpersisted first version. Persistence assigns
+     * it when the initial draft is created.
+     */
+    val seriesId: TherapySessionSeriesId? = null,
     val authorId: UserId,
 
     val title: String,
