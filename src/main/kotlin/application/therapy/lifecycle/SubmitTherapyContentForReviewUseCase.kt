@@ -1,4 +1,4 @@
-package com.simbiri.application.lifecycle.therapy
+package com.simbiri.application.therapy.lifecycle
 
 import com.simbiri.application.therapy.context.TherapyContentContextLoader
 import com.simbiri.domain.model.common.TherapySessionId

@@ -2,8 +2,8 @@ package com.simbiri.di
 
 import com.simbiri.application.community.*
 import com.simbiri.application.community.member.*
-import com.simbiri.application.lifecycle.therapy.SubmitTherapyContentForReviewUseCase
-import com.simbiri.application.therapy.AddTherapyModuleUseCase
+import com.simbiri.application.therapy.lifecycle.SubmitTherapyContentForReviewUseCase
+import com.simbiri.application.therapy.module.AddTherapyModuleUseCase
 import com.simbiri.application.therapy.context.TherapyContentContextLoader
 import com.simbiri.application.therapy.lifecycle.ArchiveTherapyContentUseCase
 import com.simbiri.application.therapy.lifecycle.PublishTherapyContentUseCase

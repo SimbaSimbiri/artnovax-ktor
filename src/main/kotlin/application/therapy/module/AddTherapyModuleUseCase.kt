@@ -1,4 +1,4 @@
-package com.simbiri.application.therapy
+package com.simbiri.application.therapy.module
 
 import com.simbiri.application.therapy.context.TherapyContentContextLoader
 import com.simbiri.domain.model.common.TherapyModuleId
