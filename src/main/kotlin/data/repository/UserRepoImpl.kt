@@ -73,6 +73,11 @@ class UserRepoImpl(
                     "$context Nested conflict error: ${error.message}"
                 )
 
+            is DataError.Forbidden ->
+                DataError.Forbidden(
+                    "$context Nested authorization error: ${error.message}"
+                )
+
             is DataError.DuplicateResource ->
                 DataError.DuplicateResource(
                     "$context Nested duplicate-resource error: ${error.message}"
@@ -82,6 +87,8 @@ class UserRepoImpl(
                 DataError.UnknownError(
                     "$context Nested unknown error: ${error.cause}"
                 )
+
+
         }
     }
 

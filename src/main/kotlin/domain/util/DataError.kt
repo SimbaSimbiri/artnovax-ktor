@@ -17,6 +17,10 @@ sealed interface DataError : Error {
         val message: String
     ) : DataError
 
+    data class Forbidden(
+        val message: String,
+    ): DataError
+
     data class ForeignKeyViolation(
         val message: String
     ) : DataError

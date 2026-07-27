@@ -1,22 +1,20 @@
 package com.simbiri.di
 
-import com.simbiri.application.community.CreateCommunitiesInBulkUseCase
-import com.simbiri.application.community.CreateCommunityUseCase
-import com.simbiri.application.community.DeleteCommunityUseCase
-import com.simbiri.application.community.GetCommunitiesUseCase
-import com.simbiri.application.community.GetCommunityByIdUseCase
-import com.simbiri.application.community.UpdateCommunityUseCase
-import com.simbiri.application.community.member.AddCommunityMemberUseCase
-import com.simbiri.application.community.member.AddCommunityMembersInBulkUseCase
-import com.simbiri.application.community.member.GetCommunityMembersUseCase
-import com.simbiri.application.community.member.RemoveCommunityMemberUseCase
-import com.simbiri.application.community.member.UpdateCommunityMemberRoleUseCase
-import com.simbiri.application.user.CreateUserUseCase
-import com.simbiri.application.user.CreateUsersInBulkUseCase
-import com.simbiri.application.user.DeleteUserUseCase
-import com.simbiri.application.user.GetUserByIdUseCase
-import com.simbiri.application.user.GetUsersUseCase
-import com.simbiri.application.user.UpdateUserUseCase
+import com.simbiri.application.community.*
+import com.simbiri.application.community.member.*
+import com.simbiri.application.lifecycle.therapy.SubmitTherapyContentForReviewUseCase
+import com.simbiri.application.therapy.AddTherapyModuleUseCase
+import com.simbiri.application.therapy.context.TherapyContentContextLoader
+import com.simbiri.application.therapy.lifecycle.ArchiveTherapyContentUseCase
+import com.simbiri.application.therapy.lifecycle.PublishTherapyContentUseCase
+import com.simbiri.application.therapy.lifecycle.ReturnTherapyContentToDraftUseCase
+import com.simbiri.application.therapy.module.RemoveTherapyModuleUseCase
+import com.simbiri.application.therapy.module.ReorderTherapyModulesUseCase
+import com.simbiri.application.therapy.module.UpdateTherapyModuleUseCase
+import com.simbiri.application.therapy.session.CreateTherapyDraftUseCase
+import com.simbiri.application.therapy.session.DeleteTherapyDraftUseCase
+import com.simbiri.application.therapy.session.UpdateTherapyDraftUseCase
+import com.simbiri.application.user.*
 import org.koin.core.module.dsl.singleOf
 import org.koin.dsl.module
 import java.time.Clock
@@ -58,4 +56,24 @@ val applicationModule = module {
     singleOf(::GetCommunityMembersUseCase)
     singleOf(::UpdateCommunityMemberRoleUseCase)
     singleOf(::RemoveCommunityMemberUseCase)
+
+    // Therapy-content application support
+    singleOf(::TherapyContentContextLoader)
+
+    // Therapy draft operations
+    singleOf(::CreateTherapyDraftUseCase)
+    singleOf(::UpdateTherapyDraftUseCase)
+    singleOf(::DeleteTherapyDraftUseCase)
+
+    // Therapy module operations
+    singleOf(::AddTherapyModuleUseCase)
+    singleOf(::UpdateTherapyModuleUseCase)
+    singleOf(::ReorderTherapyModulesUseCase)
+    singleOf(::RemoveTherapyModuleUseCase)
+
+    // Therapy lifecycle operations
+    singleOf(::SubmitTherapyContentForReviewUseCase)
+    singleOf(::ReturnTherapyContentToDraftUseCase)
+    singleOf(::PublishTherapyContentUseCase)
+    singleOf(::ArchiveTherapyContentUseCase)
 }

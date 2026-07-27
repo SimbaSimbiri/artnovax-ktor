@@ -3,9 +3,11 @@ package com.simbiri.di
 
 import com.simbiri.data.database.DatabaseFactory
 import com.simbiri.data.repository.CommunityRepoImpl
+import com.simbiri.data.repository.TherapyContentRepoImpl
 import com.simbiri.data.repository.UserRepoImpl
 import com.simbiri.domain.repository.UserRepository
 import com.simbiri.domain.repository.CommunityRepository
+import com.simbiri.domain.repository.TherapyContentRepository
 import org.jetbrains.exposed.sql.Database
 import org.koin.core.module.dsl.singleOf
 import org.koin.dsl.bind
@@ -21,4 +23,6 @@ val dataModule = module {
     singleOf(::UserRepoImpl).bind<UserRepository>()
     // community repo
     singleOf(::CommunityRepoImpl).bind<CommunityRepository>()
+    // therapy repo
+    singleOf(::TherapyContentRepoImpl).bind<TherapyContentRepository>()
 }

@@ -947,6 +947,9 @@ class TherapyContentRepoImpl(
         return null
     }
 
+    /**
+     * Ensures the current status of the TherapySession is in DRAFT
+     */
     private fun validatePersistedDraftInternal(
         operation: String,
         session: TherapySession,
@@ -962,6 +965,9 @@ class TherapyContentRepoImpl(
         )
     }
 
+    /**
+     * Ensures the client can't change AuthorID, SeriesID, and Version attributes arbitrarily
+     */
     private fun validateImmutableDraftFieldsInternal(
         operation: String,
         incoming: TherapySession,
@@ -996,6 +1002,9 @@ class TherapyContentRepoImpl(
         else -> null
     }
 
+    /**
+     * Ensures TherapyAsset used as Session cover is unique and is not a Module asset
+     */
     private fun validateCoverStorageKeyInternal(
         operation: String,
         therapySessionId: UUID,
@@ -1032,6 +1041,17 @@ class TherapyContentRepoImpl(
         )
     }
 
+    /**
+     * Ensures incoming module assets use unique storage keys within the
+     * TherapySession aggregate.
+     *
+     * Validates that:
+     * - the incoming module payload does not contain duplicate storage keys;
+     * - no incoming storage key is already used by the session cover or another
+     *   module;
+     * - when updating a module, the module's currently persisted assets are
+     *   excluded from the conflict check.
+     */
     private fun validateModuleStorageKeysInternal(
         operation: String,
         therapySessionId: UUID,
@@ -1114,6 +1134,9 @@ class TherapyContentRepoImpl(
         }
     }
 
+    /**
+     * Updates goal and culture tags, and contraindications table on therapy session update
+     */
     private fun replaceSessionClassificationsInternal(
         therapySessionId: UUID,
         goalTags: Set<TherapyGoal>,

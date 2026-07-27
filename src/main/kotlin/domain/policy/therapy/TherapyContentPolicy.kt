@@ -419,7 +419,7 @@ object TherapyContentPolicy {
         }
 
         val expectedOrder =
-            (0 until session.modules.size).toList()
+            session.modules.indices.toList()
 
         val actualOrder =
             session.modules.map { module ->

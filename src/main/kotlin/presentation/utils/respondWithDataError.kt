@@ -60,6 +60,16 @@ suspend fun RoutingContext.respondWithDataError(errorType: DataError) {
             )
         }
 
+        is DataError.Forbidden -> {
+            call.respond(
+                status = HttpStatusCode.Forbidden,
+                message = mapOf(
+                    "error" to "FORBIDDEN",
+                    "message" to errorType.message
+                )
+            )
+        }
+
         is DataError.ForeignKeyViolation -> {
             call.respond(
                 status = HttpStatusCode.BadRequest,
