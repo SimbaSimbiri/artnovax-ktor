@@ -1,5 +1,6 @@
 package com.simbiri.domain.policy.therapy
 
+import com.simbiri.domain.model.common.UserId
 import com.simbiri.domain.model.therapy.TherapySession
 import com.simbiri.domain.model.user.User
 import com.simbiri.domain.util.DataError
@@ -168,6 +169,116 @@ object TherapyContentAccessPolicy {
         }
 
         return null
+    }
+
+    /**
+     * Verifies that an actor may browse the therapy-content management
+     * collection.
+     *
+     * Authors may only query their own content. Reviewers and publishers may
+     * query content from any author.
+     */
+    fun validateCanBrowseManagedContent(
+        actor: User,
+        requestedAuthorId: UserId?,
+    ): DataError.Forbidden? {
+        validateActiveActor(
+            actor = actor,
+            operation = "browse managed therapy content",
+        )?.let { error ->
+            return error
+        }
+
+        val actorId =
+            actor.id
+                ?: return forbidden(
+                    actor = actor,
+                    operation = "browse managed therapy content",
+                    reason = "A persisted actor ID is required."
+                )
+
+        /*
+         * Reviewers and publishers need cross-author visibility so they can
+         * inspect submitted content.
+         */
+        if (
+            actor.canReviewTherapyContent ||
+            actor.canPublishTherapyContent
+        ) {
+            return null
+        }
+
+        if (!actor.canAuthorTherapyContent) {
+            return forbidden(
+                actor = actor,
+                operation = "browse managed therapy content",
+                reason = "User type '${actor.type}' is not permitted to " +
+                        "manage therapy content."
+            )
+        }
+
+        if (
+            requestedAuthorId != null &&
+            requestedAuthorId != actorId
+        ) {
+            return forbidden(
+                actor = actor,
+                operation = "browse managed therapy content",
+                reason = "Therapy-content authors may only query their own " +
+                        "content. requestedAuthorId=${requestedAuthorId.value}."
+            )
+        }
+
+        return null
+    }
+
+    /**
+     * Verifies that an actor may view one non-public therapy-content
+     * aggregate.
+     *
+     * Authors may view their own content. Reviewers and publishers may view
+     * content belonging to any author.
+     */
+    fun validateCanViewManagedContent(
+        actor: User,
+        session: TherapySession,
+    ): DataError.Forbidden? {
+        validateActiveActor(
+            actor = actor,
+            operation = "view managed therapy content",
+        )?.let { error ->
+            return error
+        }
+
+        val actorId =
+            actor.id
+                ?: return forbidden(
+                    actor = actor,
+                    operation = "view managed therapy content",
+                    reason = "A persisted actor ID is required."
+                )
+
+        if (
+            actor.canReviewTherapyContent ||
+            actor.canPublishTherapyContent
+        ) {
+            return null
+        }
+
+        if (
+            actor.canAuthorTherapyContent &&
+            actorId == session.authorId
+        ) {
+            return null
+        }
+
+        return forbidden(
+            actor = actor,
+            operation = "view managed therapy content",
+            reason = "The actor is neither the session author nor an " +
+                    "authorized therapy-content reviewer. " +
+                    "sessionAuthorId=${session.authorId.value}."
+        )
     }
 
     /**

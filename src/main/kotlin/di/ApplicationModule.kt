@@ -2,15 +2,16 @@ package com.simbiri.di
 
 import com.simbiri.application.community.*
 import com.simbiri.application.community.member.*
-import com.simbiri.application.therapy.lifecycle.SubmitTherapyContentForReviewUseCase
-import com.simbiri.application.therapy.module.AddTherapyModuleUseCase
 import com.simbiri.application.therapy.context.TherapyContentContextLoader
 import com.simbiri.application.therapy.lifecycle.ArchiveTherapyContentUseCase
 import com.simbiri.application.therapy.lifecycle.PublishTherapyContentUseCase
 import com.simbiri.application.therapy.lifecycle.ReturnTherapyContentToDraftUseCase
+import com.simbiri.application.therapy.lifecycle.SubmitTherapyContentForReviewUseCase
+import com.simbiri.application.therapy.module.AddTherapyModuleUseCase
 import com.simbiri.application.therapy.module.RemoveTherapyModuleUseCase
 import com.simbiri.application.therapy.module.ReorderTherapyModulesUseCase
 import com.simbiri.application.therapy.module.UpdateTherapyModuleUseCase
+import com.simbiri.application.therapy.query.*
 import com.simbiri.application.therapy.session.CreateTherapyDraftUseCase
 import com.simbiri.application.therapy.session.DeleteTherapyDraftUseCase
 import com.simbiri.application.therapy.session.UpdateTherapyDraftUseCase
@@ -76,4 +77,11 @@ val applicationModule = module {
     singleOf(::ReturnTherapyContentToDraftUseCase)
     singleOf(::PublishTherapyContentUseCase)
     singleOf(::ArchiveTherapyContentUseCase)
+
+    // Therapy-content queries
+    singleOf(::GetPublishedTherapySessionsUseCase)
+    singleOf(::GetPublishedTherapySessionByIdUseCase)
+    singleOf(::GetManagedTherapySessionsUseCase)
+    singleOf(::GetManagedTherapySessionByIdUseCase)
+    singleOf(::GetLatestManagedTherapySessionVersionUseCase)
 }
