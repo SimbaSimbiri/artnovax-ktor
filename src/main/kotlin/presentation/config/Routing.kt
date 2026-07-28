@@ -10,6 +10,8 @@ import io.ktor.server.auth.*
 import io.ktor.server.resources.*
 import io.ktor.server.routing.*
 import org.koin.ktor.ext.inject
+import com.simbiri.application.auth.AuthenticateUserUseCase
+import com.simbiri.presentation.routes.authenticationRoutes
 
 fun Application.configureRouting() {
     install(Resources)
@@ -21,6 +23,9 @@ fun Application.configureRouting() {
     val getUsersUseCase: GetUsersUseCase by inject()
     val updateUserUseCase: UpdateUserUseCase by inject()
     val deleteUserUseCase: DeleteUserUseCase by inject()
+
+    // Password authentication
+    val authenticateUserUseCase: AuthenticateUserUseCase by inject()
 
     // Community use cases
     val createCommunityUseCase: CreateCommunityUseCase by inject()
@@ -47,6 +52,10 @@ fun Application.configureRouting() {
 
     routing {
         root()
+
+        authenticationRoutes(
+            authenticateUserUseCase = authenticateUserUseCase,
+        )
 
         userRoutes(
             createUserUseCase = createUserUseCase,

@@ -4,6 +4,7 @@ import com.simbiri.domain.model.auth.AuthenticatedSession
 import com.simbiri.domain.model.auth.AuthenticationCredential
 import com.simbiri.domain.model.auth.AuthenticationError
 import com.simbiri.domain.policy.auth.AuthenticationAttemptPolicy
+import com.simbiri.domain.policy.auth.PasswordPolicy
 import com.simbiri.domain.policy.user.EmailAddressNormalizer
 import com.simbiri.domain.repository.AuthenticationCredentialRepository
 import com.simbiri.domain.repository.UserRepository
@@ -37,7 +38,13 @@ class AuthenticateUserUseCase(
             emailAddress
         )
 
-        if (normalizedEmailAddress.isBlank()) {
+        /*
+         * Reject malformed authentication material before performing repository
+         * access or expensive password verification.
+         */
+        if (normalizedEmailAddress.isBlank() || normalizedEmailAddress.length > MAXIMUM_EMAIL_ADDRESS_LENGTH
+            || PasswordPolicy.validateForCredentialCreation( password) != null
+        ) {
             return invalidCredentials()
         }
 
@@ -161,7 +168,7 @@ class AuthenticateUserUseCase(
      * Verifies an application-owned copy so this use case can clear its
      * plaintext working memory after the hasher returns.
      *
-     * Null impleis hashing failed.
+     * Null implies hashing infrastructure failed.
      */
     private suspend fun verifyPasswordOrFailure(
         password: CharArray,
@@ -183,7 +190,7 @@ class AuthenticateUserUseCase(
 
     private fun mapUserLookupFailure(
         error: DataError,
-    ): ResultType< AuthenticatedSession, AuthenticationError,> = if (error == DataError.NotFound) {
+    ): ResultType<AuthenticatedSession, AuthenticationError> = if (error == DataError.NotFound) {
         invalidCredentials()
     } else {
         dataFailure(error)
@@ -197,13 +204,17 @@ class AuthenticateUserUseCase(
         dataFailure(error)
     }
 
-    private fun invalidCredentials(): ResultType<AuthenticatedSession, AuthenticationError,> = ResultType.Failure(
+    private fun invalidCredentials(): ResultType<AuthenticatedSession, AuthenticationError> = ResultType.Failure(
         AuthenticationError.InvalidCredentials
     )
 
     private fun dataFailure(
         error: DataError,
-    ): ResultType<AuthenticatedSession, AuthenticationError,> = ResultType.Failure(
+    ): ResultType<AuthenticatedSession, AuthenticationError> = ResultType.Failure(
         AuthenticationError.DataFailure(error)
     )
+
+    private companion object {
+        const val MAXIMUM_EMAIL_ADDRESS_LENGTH = 255
+    }
 }
