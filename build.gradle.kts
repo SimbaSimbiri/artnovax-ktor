@@ -21,6 +21,10 @@ dependencies {
     implementation(libs.ktor.server.content.negotiation)
     implementation(libs.ktor.server.call.logging)
 
+    // auth
+    implementation(libs.ktor.server.auth)
+    implementation(libs.ktor.server.auth.jwt)
+
     implementation(libs.koin.ktor)
     implementation(libs.koin.logger.slf4j)
     implementation(libs.logback.classic)
