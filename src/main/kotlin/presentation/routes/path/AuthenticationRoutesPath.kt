@@ -9,6 +9,15 @@ import io.ktor.resources.Resource
 class AuthenticationRoutesPath {
 
     /**
+     * Creates a new regular user account and password credential.
+     */
+    @Resource("register")
+    data class Register(
+        val parent: AuthenticationRoutesPath =
+            AuthenticationRoutesPath(),
+    )
+
+    /**
      * Authenticates a user and issues a short-lived access token.
      */
     @Resource("login")

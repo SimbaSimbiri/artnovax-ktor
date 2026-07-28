@@ -21,12 +21,12 @@ import io.ktor.server.response.*
 import io.ktor.server.routing.Routing
 
 fun Routing.userRoutes(
-    createUserUseCase: CreateUserUseCase,
-    createUsersInBulkUseCase: CreateUsersInBulkUseCase,
+    //createUserUseCase: CreateUserUseCase,
+    //createUsersInBulkUseCase: CreateUsersInBulkUseCase,
     getUserByIdUseCase: GetUserByIdUseCase,
     getUsersUseCase: GetUsersUseCase,
-    updateUserUseCase: UpdateUserUseCase,
-    deleteUserUseCase: DeleteUserUseCase,
+    //updateUserUseCase: UpdateUserUseCase,
+    //deleteUserUseCase: DeleteUserUseCase,
 ) {
 
     // GET /users?userType={code}
@@ -85,97 +85,97 @@ fun Routing.userRoutes(
             }
     }
 
-    // POST /users
-    post<UserRoutesPath> {
-        val userReceivedDto = call.receive<UserUpsertDto>()
-        val user = userReceivedDto.toDomainForCreate()
+//    // POST /users
+//    post<UserRoutesPath> {
+//        val userReceivedDto = call.receive<UserUpsertDto>()
+//        val user = userReceivedDto.toDomainForCreate()
+//
+//        createUserUseCase(user)
+//            .onSuccess {
+//                call.respond(
+//                    status = HttpStatusCode.Created,
+//                    message = "User ${user.accountName} created successfully",
+//                )
+//            }
+//            .onFailure { error ->
+//                respondWithDataError(error)
+//            }
+//    }
+//
+//    // POST /users/bulk
+//    post<UserRoutesPath.Bulk> {
+//        val usersReceivedDto = call.receive<List<UserUpsertDto>>()
+//        val users = usersReceivedDto.toDomainForCreate()
+//
+//        createUsersInBulkUseCase(users)
+//            .onSuccess {
+//                call.respond(
+//                    status = HttpStatusCode.Created,
+//                    message = "${users.size} users added successfully",
+//                )
+//            }
+//            .onFailure { error ->
+//                respondWithDataError(error)
+//            }
+//    }
 
-        createUserUseCase(user)
-            .onSuccess {
-                call.respond(
-                    status = HttpStatusCode.Created,
-                    message = "User ${user.accountName} created successfully",
-                )
-            }
-            .onFailure { error ->
-                respondWithDataError(error)
-            }
-    }
-
-    // POST /users/bulk
-    post<UserRoutesPath.Bulk> {
-        val usersReceivedDto = call.receive<List<UserUpsertDto>>()
-        val users = usersReceivedDto.toDomainForCreate()
-
-        createUsersInBulkUseCase(users)
-            .onSuccess {
-                call.respond(
-                    status = HttpStatusCode.Created,
-                    message = "${users.size} users added successfully",
-                )
-            }
-            .onFailure { error ->
-                respondWithDataError(error)
-            }
-    }
-
-    // PUT /users/{userId}
-    put<UserRoutesPath.ById> { path ->
-        val userId = when (
-            val parsed = parseUserIdOrFailure(
-                operation = "updateUser",
-                rawUserId = path.userId,
-            )
-        ) {
-            is ResultType.Success -> parsed.data
-
-            is ResultType.Failure -> {
-                respondWithDataError(parsed.error)
-                return@put
-            }
-        }
-
-        val userReceivedDto = call.receive<UserUpsertDto>()
-        val user = userReceivedDto.toDomainForUpdate(
-            userId = userId.value,
-        )
-
-        updateUserUseCase(user)
-            .onSuccess {
-                call.respond(
-                    status = HttpStatusCode.OK,
-                    message = "User ${user.accountName} updated successfully",
-                )
-            }
-            .onFailure { error ->
-                respondWithDataError(error)
-            }
-    }
-
-    // DELETE /users/{userId}
-    delete<UserRoutesPath.ById> { path ->
-        val userId = when (
-            val parsed = parseUserIdOrFailure(
-                operation = "deleteUserById",
-                rawUserId = path.userId,
-            )
-        ) {
-            is ResultType.Success -> parsed.data
-
-            is ResultType.Failure -> {
-                respondWithDataError(parsed.error)
-                return@delete
-            }
-        }
-
-        deleteUserUseCase(userId)
-            .onSuccess {
-                call.respond(
-                    HttpStatusCode.NoContent
-                )
-            }
-            .onFailure { error ->
-                respondWithDataError(error)
-            }
-    }
+//    // PUT /users/{userId}
+//    put<UserRoutesPath.ById> { path ->
+//        val userId = when (
+//            val parsed = parseUserIdOrFailure(
+//                operation = "updateUser",
+//                rawUserId = path.userId,
+//            )
+//        ) {
+//            is ResultType.Success -> parsed.data
+//
+//            is ResultType.Failure -> {
+//                respondWithDataError(parsed.error)
+//                return@put
+//            }
+//        }
+//
+//        val userReceivedDto = call.receive<UserUpsertDto>()
+//        val user = userReceivedDto.toDomainForUpdate(
+//            userId = userId.value,
+//        )
+//
+//        updateUserUseCase(user)
+//            .onSuccess {
+//                call.respond(
+//                    status = HttpStatusCode.OK,
+//                    message = "User ${user.accountName} updated successfully",
+//                )
+//            }
+//            .onFailure { error ->
+//                respondWithDataError(error)
+//            }
+//    }
+///
+//    // DELETE /users/{userId}
+//    delete<UserRoutesPath.ById> { path ->
+//        val userId = when (
+//            val parsed = parseUserIdOrFailure(
+//                operation = "deleteUserById",
+//                rawUserId = path.userId,
+//            )
+//        ) {
+//            is ResultType.Success -> parsed.data
+//
+//            is ResultType.Failure -> {
+//                respondWithDataError(parsed.error)
+//                return@delete
+//            }
+//        }
+//
+//        deleteUserUseCase(userId)
+//            .onSuccess {
+//                call.respond(
+//                    HttpStatusCode.NoContent
+//                )
+//            }
+//            .onFailure { error ->
+//                respondWithDataError(error)
+//            }
+//    }
 }

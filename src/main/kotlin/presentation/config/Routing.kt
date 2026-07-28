@@ -1,5 +1,7 @@
 package com.simbiri.presentation.config
 
+import com.simbiri.application.auth.AuthenticateUserUseCase
+import com.simbiri.application.auth.RegisterUserUseCase
 import com.simbiri.application.community.*
 import com.simbiri.application.community.member.*
 import com.simbiri.application.therapy.query.*
@@ -10,22 +12,21 @@ import io.ktor.server.auth.*
 import io.ktor.server.resources.*
 import io.ktor.server.routing.*
 import org.koin.ktor.ext.inject
-import com.simbiri.application.auth.AuthenticateUserUseCase
-import com.simbiri.presentation.routes.authenticationRoutes
 
 fun Application.configureRouting() {
     install(Resources)
 
     // User application use cases
-    val createUserUseCase: CreateUserUseCase by inject()
-    val createUsersInBulkUseCase: CreateUsersInBulkUseCase by inject()
+    //val createUserUseCase: CreateUserUseCase by inject()
+    //val createUsersInBulkUseCase: CreateUsersInBulkUseCase by inject()
     val getUserByIdUseCase: GetUserByIdUseCase by inject()
     val getUsersUseCase: GetUsersUseCase by inject()
-    val updateUserUseCase: UpdateUserUseCase by inject()
-    val deleteUserUseCase: DeleteUserUseCase by inject()
+    //val updateUserUseCase: UpdateUserUseCase by inject()
+    //val deleteUserUseCase: DeleteUserUseCase by inject()
 
     // Password authentication
     val authenticateUserUseCase: AuthenticateUserUseCase by inject()
+    val registerUserUseCase: RegisterUserUseCase by inject()
 
     // Community use cases
     val createCommunityUseCase: CreateCommunityUseCase by inject()
@@ -53,17 +54,16 @@ fun Application.configureRouting() {
     routing {
         root()
 
-        authenticationRoutes(
-            authenticateUserUseCase = authenticateUserUseCase,
-        )
+        authenticationRoutes(authenticateUserUseCase = authenticateUserUseCase,)
+        registrationRoutes(registerUserUseCase= registerUserUseCase)
 
         userRoutes(
-            createUserUseCase = createUserUseCase,
-            createUsersInBulkUseCase = createUsersInBulkUseCase,
+            //createUserUseCase = createUserUseCase,
+            //createUsersInBulkUseCase = createUsersInBulkUseCase,
             getUserByIdUseCase = getUserByIdUseCase,
             getUsersUseCase = getUsersUseCase,
-            updateUserUseCase = updateUserUseCase,
-            deleteUserUseCase = deleteUserUseCase,
+            //updateUserUseCase = updateUserUseCase,
+            //deleteUserUseCase = deleteUserUseCase,
         )
 
         communityRoutes(
