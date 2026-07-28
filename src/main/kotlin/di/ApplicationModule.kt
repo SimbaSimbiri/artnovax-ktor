@@ -50,6 +50,10 @@ val applicationModule = module {
     singleOf(::GetUsersUseCase)
     singleOf(::UpdateUserUseCase)
     singleOf(::DeleteUserUseCase)
+    // Public and authenticated profile reads
+    singleOf(::GetPublicUsersUseCase)
+    singleOf(::GetPublicUserByIdUseCase)
+    singleOf(::GetCurrentUserUseCase)
 
     // Community use cases
     singleOf(::CreateCommunityUseCase)

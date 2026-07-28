@@ -16,13 +16,12 @@ import org.koin.ktor.ext.inject
 fun Application.configureRouting() {
     install(Resources)
 
-    // User application use cases
-    //val createUserUseCase: CreateUserUseCase by inject()
-    //val createUsersInBulkUseCase: CreateUsersInBulkUseCase by inject()
-    val getUserByIdUseCase: GetUserByIdUseCase by inject()
-    val getUsersUseCase: GetUsersUseCase by inject()
-    //val updateUserUseCase: UpdateUserUseCase by inject()
-    //val deleteUserUseCase: DeleteUserUseCase by inject()
+    // Public user-profile reads
+    val getPublicUserByIdUseCase: GetPublicUserByIdUseCase by inject()
+    val getPublicUsersUseCase: GetPublicUsersUseCase by inject()
+
+    // Authenticated current-user profile
+    val getCurrentUserUseCase: GetCurrentUserUseCase by inject()
 
     // Password authentication
     val authenticateUserUseCase: AuthenticateUserUseCase by inject()
@@ -54,16 +53,12 @@ fun Application.configureRouting() {
     routing {
         root()
 
-        authenticationRoutes(authenticateUserUseCase = authenticateUserUseCase,)
-        registrationRoutes(registerUserUseCase= registerUserUseCase)
+        authenticationRoutes(authenticateUserUseCase = authenticateUserUseCase)
+        registrationRoutes(registerUserUseCase = registerUserUseCase)
 
         userRoutes(
-            //createUserUseCase = createUserUseCase,
-            //createUsersInBulkUseCase = createUsersInBulkUseCase,
-            getUserByIdUseCase = getUserByIdUseCase,
-            getUsersUseCase = getUsersUseCase,
-            //updateUserUseCase = updateUserUseCase,
-            //deleteUserUseCase = deleteUserUseCase,
+            getPublicUserByIdUseCase = getPublicUserByIdUseCase,
+            getPublicUsersUseCase = getPublicUsersUseCase,
         )
 
         communityRoutes(
@@ -89,6 +84,8 @@ fun Application.configureRouting() {
         )
 
         authenticate(JWT_AUTH_PROVIDER) {
+            currentUserRoutes( getCurrentUserUseCase = getCurrentUserUseCase,)
+
             managedTherapyRoutes(
                 getManagedTherapySessionsUseCase = getManagedTherapySessionsUseCase,
                 getManagedTherapySessionByIdUseCase = getManagedTherapySessionByIdUseCase,
