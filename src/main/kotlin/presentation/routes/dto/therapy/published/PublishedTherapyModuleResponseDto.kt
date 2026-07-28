@@ -1,4 +1,4 @@
-package com.simbiri.presentation.routes.dto.therapy.public
+package com.simbiri.presentation.routes.dto.therapy.published
 
 import kotlinx.serialization.Serializable
 

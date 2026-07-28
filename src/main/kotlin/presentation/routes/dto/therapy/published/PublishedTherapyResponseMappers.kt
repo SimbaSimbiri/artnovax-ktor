@@ -1,4 +1,4 @@
-package com.simbiri.presentation.routes.dto.therapy.public
+package com.simbiri.presentation.routes.dto.therapy.published
 
 import com.simbiri.domain.model.therapy.TherapyAsset
 import com.simbiri.domain.model.therapy.TherapyContentStatus
