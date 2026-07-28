@@ -1,5 +1,6 @@
 package com.simbiri.di
 
+import com.simbiri.application.auth.ProvisionAuthenticationCredentialUseCase
 import com.simbiri.application.community.*
 import com.simbiri.application.community.member.*
 import com.simbiri.application.therapy.context.TherapyContentContextLoader
@@ -34,6 +35,9 @@ val applicationModule = module {
     single<Clock> {
         Clock.systemUTC()
     }
+
+    // Authentication credential operations
+    singleOf(::ProvisionAuthenticationCredentialUseCase)
 
     // User use cases
     singleOf(::CreateUserUseCase)
