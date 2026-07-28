@@ -1,36 +1,15 @@
 package com.simbiri.presentation.config
 
-import com.simbiri.application.community.CreateCommunitiesInBulkUseCase
-import com.simbiri.application.community.CreateCommunityUseCase
-import com.simbiri.application.community.DeleteCommunityUseCase
-import com.simbiri.application.community.GetCommunitiesUseCase
-import com.simbiri.application.community.GetCommunityByIdUseCase
-import com.simbiri.application.community.UpdateCommunityUseCase
-import com.simbiri.application.community.member.AddCommunityMemberUseCase
-import com.simbiri.application.community.member.AddCommunityMembersInBulkUseCase
-import com.simbiri.application.community.member.GetCommunityMembersUseCase
-import com.simbiri.application.community.member.RemoveCommunityMemberUseCase
-import com.simbiri.application.community.member.UpdateCommunityMemberRoleUseCase
-import com.simbiri.application.therapy.query.GetPublishedTherapySessionByIdUseCase
-import com.simbiri.application.therapy.query.GetPublishedTherapySessionsUseCase
-import com.simbiri.application.user.CreateUserUseCase
-import com.simbiri.application.user.CreateUsersInBulkUseCase
-import com.simbiri.application.user.DeleteUserUseCase
-import com.simbiri.application.user.GetUserByIdUseCase
-import com.simbiri.application.user.GetUsersUseCase
-import com.simbiri.application.user.UpdateUserUseCase
-import com.simbiri.domain.repository.CommunityRepository
-import com.simbiri.presentation.routes.communityMemberRoutes
-import com.simbiri.presentation.routes.communityRoutes
-import com.simbiri.presentation.routes.publishedTherapyRoutes
-import com.simbiri.presentation.routes.root
-import com.simbiri.presentation.routes.userRoutes
-import io.ktor.server.application.Application
-import io.ktor.server.application.install
-import io.ktor.server.resources.Resources
-import io.ktor.server.routing.routing
+import com.simbiri.application.community.*
+import com.simbiri.application.community.member.*
+import com.simbiri.application.therapy.query.*
+import com.simbiri.application.user.*
+import com.simbiri.presentation.routes.*
+import io.ktor.server.application.*
+import io.ktor.server.auth.*
+import io.ktor.server.resources.*
+import io.ktor.server.routing.*
 import org.koin.ktor.ext.inject
-import kotlin.getValue
 
 fun Application.configureRouting() {
     install(Resources)
@@ -61,6 +40,10 @@ fun Application.configureRouting() {
     // Public therapy-content query use cases
     val getPublishedTherapySessionsUseCase: GetPublishedTherapySessionsUseCase by inject()
     val getPublishedTherapySessionByIdUseCase: GetPublishedTherapySessionByIdUseCase by inject()
+    // Managed therapy-content query use cases
+    val getManagedTherapySessionsUseCase: GetManagedTherapySessionsUseCase by inject()
+    val getManagedTherapySessionByIdUseCase: GetManagedTherapySessionByIdUseCase by inject()
+    val getLatestManagedTherapySessionVersionUseCase: GetLatestManagedTherapySessionVersionUseCase by inject()
 
     routing {
         root()
@@ -95,5 +78,13 @@ fun Application.configureRouting() {
             getPublishedTherapySessionsUseCase = getPublishedTherapySessionsUseCase,
             getPublishedTherapySessionByIdUseCase = getPublishedTherapySessionByIdUseCase,
         )
+
+        authenticate(JWT_AUTH_PROVIDER) {
+            managedTherapyRoutes(
+                getManagedTherapySessionsUseCase = getManagedTherapySessionsUseCase,
+                getManagedTherapySessionByIdUseCase = getManagedTherapySessionByIdUseCase,
+                getLatestManagedTherapySessionVersionUseCase = getLatestManagedTherapySessionVersionUseCase,
+            )
+        }
     }
 }
