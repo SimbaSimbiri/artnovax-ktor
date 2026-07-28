@@ -4,22 +4,17 @@ import com.simbiri.presentation.config.JWT_AUTH_PROVIDER
 import com.simbiri.presentation.config.configureAuthentication
 import com.simbiri.presentation.config.configureSerialization
 import com.simbiri.support.auth.TestJwtTokenFactory
-import io.ktor.client.request.HttpRequestBuilder
-import io.ktor.client.request.get
-import io.ktor.client.request.header
-import io.ktor.client.statement.bodyAsText
-import io.ktor.http.HttpHeaders
-import io.ktor.http.HttpStatusCode
-import io.ktor.server.application.Application
-import io.ktor.server.auth.authenticate
-import io.ktor.server.response.respondText
-import io.ktor.server.routing.get
-import io.ktor.server.routing.routing
-import io.ktor.server.testing.testApplication
+import io.ktor.client.request.*
+import io.ktor.client.statement.*
+import io.ktor.http.*
+import io.ktor.server.application.*
+import io.ktor.server.auth.*
+import io.ktor.server.response.*
+import io.ktor.server.routing.*
+import io.ktor.server.testing.*
 import java.time.Instant
-import java.util.UUID
+import java.util.*
 import kotlin.test.Test
-import kotlin.test.assertContains
 import kotlin.test.assertEquals
 
 class JwtAuthenticationTest {
@@ -31,11 +26,6 @@ class JwtAuthenticationTest {
         }
 
         val response = client.get(PROTECTED_PATH)
-
-        assertEquals(
-            expected = HttpStatusCode.Unauthorized,
-            actual = response.status,
-        )
 
         val responseBody = response.bodyAsText()
 

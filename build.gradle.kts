@@ -24,6 +24,8 @@ dependencies {
     // auth
     implementation(libs.ktor.server.auth)
     implementation(libs.ktor.server.auth.jwt)
+    // pass hash
+    implementation(libs.argon2.jvm)
 
     implementation(libs.koin.ktor)
     implementation(libs.koin.logger.slf4j)

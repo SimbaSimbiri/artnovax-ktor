@@ -12,6 +12,10 @@ import org.jetbrains.exposed.sql.Database
 import org.koin.core.module.dsl.singleOf
 import org.koin.dsl.bind
 import org.koin.dsl.module
+import com.simbiri.data.repository.AuthenticationCredentialRepoImpl
+import com.simbiri.data.security.Argon2PasswordHasher
+import com.simbiri.domain.repository.AuthenticationCredentialRepository
+import com.simbiri.domain.security.PasswordHasher
 
 /**
  * Contains only infrastructure level dependencies
@@ -21,6 +25,10 @@ val dataModule = module {
     single<Database> { DatabaseFactory.create() }
     // our user repositories
     singleOf(::UserRepoImpl).bind<UserRepository>()
+    // Authentication credential repository
+    singleOf(::AuthenticationCredentialRepoImpl).bind<AuthenticationCredentialRepository>()
+    // Password hashing infrastructure
+    single<PasswordHasher> { Argon2PasswordHasher() }
     // community repo
     singleOf(::CommunityRepoImpl).bind<CommunityRepository>()
     // therapy repo
