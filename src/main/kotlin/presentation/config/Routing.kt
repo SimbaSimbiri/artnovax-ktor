@@ -11,6 +11,8 @@ import com.simbiri.application.community.member.AddCommunityMembersInBulkUseCase
 import com.simbiri.application.community.member.GetCommunityMembersUseCase
 import com.simbiri.application.community.member.RemoveCommunityMemberUseCase
 import com.simbiri.application.community.member.UpdateCommunityMemberRoleUseCase
+import com.simbiri.application.therapy.query.GetPublishedTherapySessionByIdUseCase
+import com.simbiri.application.therapy.query.GetPublishedTherapySessionsUseCase
 import com.simbiri.application.user.CreateUserUseCase
 import com.simbiri.application.user.CreateUsersInBulkUseCase
 import com.simbiri.application.user.DeleteUserUseCase
@@ -20,6 +22,7 @@ import com.simbiri.application.user.UpdateUserUseCase
 import com.simbiri.domain.repository.CommunityRepository
 import com.simbiri.presentation.routes.communityMemberRoutes
 import com.simbiri.presentation.routes.communityRoutes
+import com.simbiri.presentation.routes.publishedTherapyRoutes
 import com.simbiri.presentation.routes.root
 import com.simbiri.presentation.routes.userRoutes
 import io.ktor.server.application.Application
@@ -55,6 +58,10 @@ fun Application.configureRouting() {
     val updateCommunityMemberRoleUseCase: UpdateCommunityMemberRoleUseCase by inject()
     val removeCommunityMemberUseCase: RemoveCommunityMemberUseCase by inject()
 
+    // Public therapy-content query use cases
+    val getPublishedTherapySessionsUseCase: GetPublishedTherapySessionsUseCase by inject()
+    val getPublishedTherapySessionByIdUseCase: GetPublishedTherapySessionByIdUseCase by inject()
+
     routing {
         root()
 
@@ -82,6 +89,11 @@ fun Application.configureRouting() {
             getCommunityMembersUseCase = getCommunityMembersUseCase,
             updateCommunityMemberRoleUseCase = updateCommunityMemberRoleUseCase,
             removeCommunityMemberUseCase = removeCommunityMemberUseCase,
+        )
+
+        publishedTherapyRoutes(
+            getPublishedTherapySessionsUseCase = getPublishedTherapySessionsUseCase,
+            getPublishedTherapySessionByIdUseCase = getPublishedTherapySessionByIdUseCase,
         )
     }
 }
