@@ -19,6 +19,7 @@ import com.simbiri.domain.model.common.UserId
 import com.simbiri.domain.model.social.SocialLink
 import com.simbiri.domain.model.user.User
 import com.simbiri.domain.model.user.UserType
+import com.simbiri.domain.policy.user.EmailAddressNormalizer
 import com.simbiri.domain.repository.UserRepository
 import com.simbiri.domain.util.DataError
 import com.simbiri.domain.util.ResultType
@@ -221,6 +222,60 @@ class UserRepoImpl(
                     operation = operation,
                     e = e,
                     details = "userId=${userId.value}"
+                )
+            )
+        }
+    }
+
+    override suspend fun getUserByEmailAddress(
+        emailAddress: String,
+    ): ResultType<User, DataError> {
+        val operation =
+            "getUserByEmailAddress"
+
+        val normalizedEmailAddress =
+            EmailAddressNormalizer.normalize(
+                emailAddress
+            )
+
+        if (normalizedEmailAddress.isBlank()) {
+            return ResultType.Failure(
+                validationError(
+                    operation = operation,
+                    field = "emailAddress",
+                    value = "<redacted>",
+                    reason =
+                        "Email address must not be blank."
+                )
+            )
+        }
+
+        return try {
+            val user =
+                db.dbQuery {
+                    loadUserByEmailAddressInternal(
+                        normalizedEmailAddress
+                    )
+                }
+
+            if (user == null) {
+                ResultType.Failure(
+                    DataError.NotFound
+                )
+            } else {
+                ResultType.Success(user)
+            }
+        } catch (e: Exception) {
+            ResultType.Failure(
+                databaseError(
+                    operation = operation,
+                    e = e,
+                    /*
+                     * Do not place authentication identifiers in database
+                     * error details.
+                     */
+                    details =
+                        "normalizedEmailAddress=<redacted>",
                 )
             )
         }
@@ -457,6 +512,25 @@ class UserRepoImpl(
         return userRow
             .toUserEntity()
             .toDomain(socialLinks)
+    }
+
+    /**
+     * Loads one user by canonical email identity.
+     */
+    private fun loadUserByEmailAddressInternal(
+        normalizedEmailAddress: String,
+    ): User? {
+        val userRow = UserTable.selectAll().where {
+                UserTable.emailAddress.lowerCase() eq normalizedEmailAddress
+            }.singleOrNull() ?: return null
+
+        val userId = userRow[UserTable.id].value
+
+        val socialLinks = loadSocialLinksByUserIdsInternal(
+            userIds = setOf(userId)
+        )[userId].orEmpty()
+
+        return userRow.toUserEntity().toDomain(socialLinks)
     }
 
     private fun loadSocialLinksByUserIdsInternal(

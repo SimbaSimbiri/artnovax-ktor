@@ -5,6 +5,7 @@ import com.simbiri.domain.model.common.UserId
 import com.simbiri.domain.model.social.SocialLink
 import com.simbiri.domain.model.user.User
 import com.simbiri.domain.model.user.UserType
+import com.simbiri.domain.policy.user.EmailAddressNormalizer
 import java.time.Instant
 import java.util.UUID
 
@@ -38,7 +39,7 @@ fun User.toEntity(
     UserEntity(
         id = id?.value ?: UUID.randomUUID(),
         accountName = accountName,
-        emailAddress = emailAddress,
+        emailAddress = EmailAddressNormalizer.normalize(emailAddress),
         firstName = firstName,
         lastName = lastName,
         birthDate = birthDate,

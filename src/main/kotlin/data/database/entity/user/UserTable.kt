@@ -5,11 +5,12 @@ import org.jetbrains.exposed.dao.id.UUIDTable
 import org.jetbrains.exposed.sql.javatime.CurrentTimestamp
 import org.jetbrains.exposed.sql.javatime.date
 import org.jetbrains.exposed.sql.javatime.timestamp
+import org.jetbrains.exposed.sql.lowerCase
 
 object UserTable : UUIDTable("users") {
     // Core identity
     val accountName = varchar("account_name", 50).uniqueIndex()
-    val emailAddress = varchar("email_address", 255).uniqueIndex()
+    val emailAddress = varchar("email_address", 255)
 
     // Profile
     val firstName = varchar("first_name", 100)
@@ -35,4 +36,18 @@ object UserTable : UUIDTable("users") {
     // Auditing
     val createdAt = timestamp("created_at")
     val updatedAt = timestamp("updated_at")
+
+    init {
+        /*
+         * Email identity as case-insensitive.
+         */
+        uniqueIndex(
+            customIndexName =
+                "uq_users_email_address_normalized",
+            functions =
+                listOf(
+                    emailAddress.lowerCase()
+                ),
+        )
+    }
 }

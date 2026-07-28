@@ -16,6 +16,9 @@ import com.simbiri.data.repository.AuthenticationCredentialRepoImpl
 import com.simbiri.data.security.Argon2PasswordHasher
 import com.simbiri.domain.repository.AuthenticationCredentialRepository
 import com.simbiri.domain.security.PasswordHasher
+import com.simbiri.domain.security.AccessTokenIssuer
+import com.simbiri.presentation.auth.JwtAccessTokenIssuer
+import com.simbiri.presentation.auth.JwtSettings
 
 /**
  * Contains only infrastructure level dependencies
@@ -23,14 +26,22 @@ import com.simbiri.domain.security.PasswordHasher
 val dataModule = module {
     // our single rds db instance
     single<Database> { DatabaseFactory.create() }
+
     // our user repositories
     singleOf(::UserRepoImpl).bind<UserRepository>()
+
     // Authentication credential repository
     singleOf(::AuthenticationCredentialRepoImpl).bind<AuthenticationCredentialRepository>()
     // Password hashing infrastructure
     single<PasswordHasher> { Argon2PasswordHasher() }
+    // JWT signing and verification settings
+    single { JwtSettings.fromEnvironment() }
+    // Access-token signing infrastructure
+    singleOf(::JwtAccessTokenIssuer).bind<AccessTokenIssuer>()
+
     // community repo
     singleOf(::CommunityRepoImpl).bind<CommunityRepository>()
+
     // therapy repo
     singleOf(::TherapyContentRepoImpl).bind<TherapyContentRepository>()
 }

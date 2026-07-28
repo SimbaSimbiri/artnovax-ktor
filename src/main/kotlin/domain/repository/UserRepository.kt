@@ -34,6 +34,16 @@ interface UserRepository {
     ): ResultType<User, DataError>
 
     /**
+     * Retrieves one user using a normalized email address.
+     *
+     * performs defensive normalization even when the caller
+     * has already normalized the value.
+     */
+    suspend fun getUserByEmailAddress(
+        emailAddress: String,
+    ): ResultType<User, DataError>
+
+    /**
      * Persists a new user.
      *
      * The application layer must provide a user whose ID is null.

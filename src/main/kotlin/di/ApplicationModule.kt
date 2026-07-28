@@ -1,5 +1,6 @@
 package com.simbiri.di
 
+import com.simbiri.application.auth.AuthenticateUserUseCase
 import com.simbiri.application.auth.ProvisionAuthenticationCredentialUseCase
 import com.simbiri.application.community.*
 import com.simbiri.application.community.member.*
@@ -38,6 +39,7 @@ val applicationModule = module {
 
     // Authentication credential operations
     singleOf(::ProvisionAuthenticationCredentialUseCase)
+    singleOf(::AuthenticateUserUseCase)
 
     // User use cases
     singleOf(::CreateUserUseCase)

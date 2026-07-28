@@ -10,6 +10,8 @@ data class JwtSettings(
     val issuer: String,
     val audience: String,
     val realm: String,
+    val accessTokenTtlSeconds: Long =
+        DEFAULT_ACCESS_TOKEN_TTL_SECONDS,
 ) {
 
     init {
@@ -35,6 +37,16 @@ data class JwtSettings(
 
         require(realm.isNotBlank()) {
             "JWT realm must not be blank."
+        }
+
+        require(
+            accessTokenTtlSeconds in
+                    MINIMUM_ACCESS_TOKEN_TTL_SECONDS..
+                    MAXIMUM_ACCESS_TOKEN_TTL_SECONDS
+        ) {
+            "JWT access-token lifetime must be between " +
+                    "$MINIMUM_ACCESS_TOKEN_TTL_SECONDS and " +
+                    "$MAXIMUM_ACCESS_TOKEN_TTL_SECONDS seconds."
         }
     }
 
@@ -71,6 +83,14 @@ data class JwtSettings(
                 name = "JWT_REALM",
                 defaultValue = "ArtNovaX",
             ),
+            accessTokenTtlSeconds =
+                environmentLongOrDefault(
+                    environment = environment,
+                    name =
+                        "JWT_ACCESS_TOKEN_TTL_SECONDS",
+                    defaultValue =
+                        DEFAULT_ACCESS_TOKEN_TTL_SECONDS,
+                ),
         )
 
         private fun requireEnvironmentValue(
@@ -94,6 +114,21 @@ data class JwtSettings(
             defaultValue: String,
         ): String = environment[name]?.trim()?.takeIf(String::isNotEmpty) ?: defaultValue
 
+        private fun environmentLongOrDefault(
+            environment: Map<String, String>,
+            name: String,
+            defaultValue: Long,
+        ): Long {
+            val rawValue = environment[name]?.trim()?.takeIf(String::isNotEmpty) ?: return defaultValue
+
+            return rawValue.toLongOrNull() ?: error(
+                "$name must contain a valid whole number."
+            )
+        }
+
         private const val MINIMUM_SECRET_BYTES = 32
+        private const val DEFAULT_ACCESS_TOKEN_TTL_SECONDS = 15L * 60L
+        private const val MINIMUM_ACCESS_TOKEN_TTL_SECONDS = 60L
+        private const val MAXIMUM_ACCESS_TOKEN_TTL_SECONDS = 60L * 60L
     }
 }

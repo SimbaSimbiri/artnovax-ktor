@@ -12,6 +12,7 @@ import io.ktor.server.application.install
 import io.ktor.server.auth.Authentication
 import io.ktor.server.auth.jwt.jwt
 import io.ktor.server.response.respond
+import org.koin.ktor.ext.getKoin
 import java.util.UUID
 
 /**
@@ -29,15 +30,17 @@ const val JWT_AUTH_PROVIDER = "artnovax-jwt"
  * - the subject contains a valid User UUID.
  */
 fun Application.configureAuthentication(
-    settings: JwtSettings = JwtSettings.fromEnvironment(),
+    settings: JwtSettings? = null,
 ) {
+    val resolvedSettings = settings ?: getKoin().get<JwtSettings>()
+
     val verifier = JWT.require(
-            Algorithm.HMAC256(settings.secret)
-        ).withIssuer(settings.issuer).withAudience(settings.audience).build()
+        Algorithm.HMAC256(resolvedSettings.secret)
+    ).withIssuer(resolvedSettings.issuer).withAudience(resolvedSettings.audience).build()
 
     install(Authentication) {
         jwt(JWT_AUTH_PROVIDER) {
-            realm = settings.realm
+            realm = resolvedSettings.realm
             this.verifier(verifier)
 
             validate { credential ->
