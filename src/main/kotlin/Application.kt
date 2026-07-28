@@ -1,5 +1,6 @@
 package com.simbiri
 
+import com.simbiri.presentation.config.configureAuthentication
 import com.simbiri.presentation.config.configureKoin
 import com.simbiri.presentation.config.configureLogging
 import com.simbiri.presentation.config.configureRouting
@@ -16,6 +17,7 @@ fun Application.module() {
     configureKoin()
     configureLogging()
     configureSerialization()
+    configureAuthentication()
     configureRouting()
     configureValidation()
     configureStatusPages()
