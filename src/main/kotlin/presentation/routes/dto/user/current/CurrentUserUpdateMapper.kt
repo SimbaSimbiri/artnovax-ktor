@@ -27,17 +27,27 @@ fun CurrentUserUpdateRequestDto.toCurrentUserProfileUpdate(): ResultType<
         )
     }
 
-    val parsedSocialLinks = try {
-        socialLinks.map { socialLink ->
-            socialLink.toDomain()!!
+    val parsedSocialLinks =
+        mutableListOf<SocialLink>()
+
+    for (socialLink in socialLinks) {
+        val parsedSocialLink = try {
+            socialLink.toDomain()
+        } catch (_: IllegalArgumentException) {
+            null
         }
-    } catch (_: IllegalArgumentException) {
-        return ResultType.Failure(
-            DataError.ValidationError(
-                message = "Current-user profile update failed. One or more social links are invalid."
+
+        if (parsedSocialLink == null) {
+            return ResultType.Failure(
+                DataError.ValidationError(
+                    message = "Current-user profile update failed. One or more social links are invalid."
+                )
             )
-        )
+        }
+
+        parsedSocialLinks += parsedSocialLink
     }
+
 
     return ResultType.Success(
         CurrentUserProfileUpdate(

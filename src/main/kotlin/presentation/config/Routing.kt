@@ -1,6 +1,7 @@
 package com.simbiri.presentation.config
 
 import com.simbiri.application.auth.AuthenticateUserUseCase
+import com.simbiri.application.auth.ChangeCurrentUserPasswordUseCase
 import com.simbiri.application.auth.RegisterUserUseCase
 import com.simbiri.application.community.*
 import com.simbiri.application.community.member.*
@@ -27,6 +28,7 @@ fun Application.configureRouting() {
     // Password authentication
     val authenticateUserUseCase: AuthenticateUserUseCase by inject()
     val registerUserUseCase: RegisterUserUseCase by inject()
+    val changeCurrentUserPasswordUseCase: ChangeCurrentUserPasswordUseCase by inject()
 
     // Community use cases
     val createCommunityUseCase: CreateCommunityUseCase by inject()
@@ -88,6 +90,10 @@ fun Application.configureRouting() {
             currentUserRoutes(
                 getCurrentUserUseCase = getCurrentUserUseCase,
                 updateCurrentUserProfileUseCase = updateCurrentUserProfileUseCase
+            )
+
+            currentUserPasswordRoutes(
+                changeCurrentUserPasswordUseCase = changeCurrentUserPasswordUseCase,
             )
 
             managedTherapyRoutes(
