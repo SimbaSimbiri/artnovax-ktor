@@ -22,6 +22,7 @@ import io.ktor.server.routing.Routing
  * Keeping this seam internal allows focused route tests without starting
  * Koin, PostgreSQL, or the complete authentication infrastructure.
  */
+
 internal typealias AuthenticateUserHandler = suspend (
     emailAddress: String,
     password: CharArray,
@@ -73,7 +74,6 @@ internal fun Routing.authenticationRoutes(
                 is ResultType.Success -> {
                     call.respond(
                         status = HttpStatusCode.OK,
-
                         message = result.data.toResponseDto(),
                     )
                 }

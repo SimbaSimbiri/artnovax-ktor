@@ -73,8 +73,8 @@ class AuthenticationCredentialRepoImpl(
                 validationError(
                     operation = operation,
                     field = "credential.persistenceTimestamps",
-                    value = "createdAt=${credential.createdAt}, " + "updatedAt=${credential.updatedAt}",
-                    reason = "A new credential must not already " + "contain persistence timestamps."
+                    value = "createdAt=${credential.createdAt}, updatedAt=${credential.updatedAt}",
+                    reason = "A new credential must not already contain persistence timestamps."
                 )
             )
         }
@@ -178,7 +178,7 @@ class AuthenticationCredentialRepoImpl(
                 databaseError(
                     operation = operation,
                     e = e,
-                    details = "userId=${credential.userId.value}, " + "algorithm=" + credential.passwordAlgorithm,
+                    details = "userId=${credential.userId.value}, algorithm=" + credential.passwordAlgorithm,
                 )
             )
         }

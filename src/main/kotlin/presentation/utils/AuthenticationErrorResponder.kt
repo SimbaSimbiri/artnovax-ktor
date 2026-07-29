@@ -18,9 +18,7 @@ suspend fun RoutingContext.respondWithAuthenticationError(
     error: AuthenticationError,
 ) {
     when (error) {
-        AuthenticationError.InvalidCredentials,
-        AuthenticationError.TemporarilyLocked,
-            -> {
+        AuthenticationError.InvalidCredentials, AuthenticationError.TemporarilyLocked, -> {
             call.respond(
                 status = HttpStatusCode.Unauthorized,
                 message = AuthenticationErrorResponseDto(

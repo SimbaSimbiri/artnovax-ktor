@@ -92,7 +92,7 @@ class AuthenticateUserUseCase(
         if (credential.passwordAlgorithm != passwordHasher.algorithm) {
             return dataFailure(
                 DataError.UnknownError(
-                    cause = "Credential uses an unsupported " + "password-hash algorithm."
+                    cause = "Credential uses an unsupported password-hash algorithm."
                 )
             )
         }

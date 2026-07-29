@@ -61,7 +61,7 @@ class UserRegistrationRepoImpl(
                 if (emailAddressExists) {
                     return@dbQuery ResultType.Failure(
                         DataError.DuplicateResource(
-                            message = "Registration failed. An account already uses this " + "email address."
+                            message = "Registration failed. An account already uses this email address."
                         )
                     )
                 }
