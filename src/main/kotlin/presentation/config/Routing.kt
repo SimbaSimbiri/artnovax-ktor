@@ -16,12 +16,13 @@ import org.koin.ktor.ext.inject
 fun Application.configureRouting() {
     install(Resources)
 
-    // Public user-profile reads
+    // Public user-profile ops
     val getPublicUserByIdUseCase: GetPublicUserByIdUseCase by inject()
     val getPublicUsersUseCase: GetPublicUsersUseCase by inject()
 
     // Authenticated current-user profile
     val getCurrentUserUseCase: GetCurrentUserUseCase by inject()
+    val updateCurrentUserProfileUseCase: UpdateCurrentUserProfileUseCase by inject()
 
     // Password authentication
     val authenticateUserUseCase: AuthenticateUserUseCase by inject()
@@ -84,7 +85,10 @@ fun Application.configureRouting() {
         )
 
         authenticate(JWT_AUTH_PROVIDER) {
-            currentUserRoutes( getCurrentUserUseCase = getCurrentUserUseCase,)
+            currentUserRoutes(
+                getCurrentUserUseCase = getCurrentUserUseCase,
+                updateCurrentUserProfileUseCase = updateCurrentUserProfileUseCase
+            )
 
             managedTherapyRoutes(
                 getManagedTherapySessionsUseCase = getManagedTherapySessionsUseCase,
