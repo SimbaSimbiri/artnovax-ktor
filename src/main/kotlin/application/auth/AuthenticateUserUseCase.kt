@@ -1,6 +1,5 @@
 package com.simbiri.application.auth
 
-import com.simbiri.data.database.entity.auth.AuthenticationCredentialTable.sessionVersion
 import com.simbiri.domain.model.auth.AuthenticatedSession
 import com.simbiri.domain.model.auth.AuthenticationCredential
 import com.simbiri.domain.model.auth.AuthenticationError

@@ -2,6 +2,7 @@ package com.simbiri.di
 
 
 import com.simbiri.data.database.DatabaseFactory
+import com.simbiri.data.repository.AccessTokenSessionRepoImpl
 import com.simbiri.data.repository.CommunityRepoImpl
 import com.simbiri.data.repository.TherapyContentRepoImpl
 import com.simbiri.data.repository.UserRepoImpl
@@ -20,6 +21,7 @@ import com.simbiri.domain.security.AccessTokenIssuer
 import com.simbiri.presentation.auth.JwtAccessTokenIssuer
 import com.simbiri.presentation.auth.JwtSettings
 import com.simbiri.data.repository.UserRegistrationRepoImpl
+import com.simbiri.domain.repository.AccessTokenSessionRepository
 import com.simbiri.domain.repository.UserRegistrationRepository
 
 /**
@@ -40,9 +42,11 @@ val dataModule = module {
     single { JwtSettings.fromEnvironment() }
     // Access-token signing infrastructure
     singleOf(::JwtAccessTokenIssuer).bind<AccessTokenIssuer>()
-// Transactional account registration
-    single<UserRegistrationRepository> { UserRegistrationRepoImpl( db = get(), clock = get(),)
-    }
+    // Access-token session validation
+    singleOf(::AccessTokenSessionRepoImpl).bind<AccessTokenSessionRepository>()
+    // Transactional account registration
+    single<UserRegistrationRepository> { UserRegistrationRepoImpl( db = get(), clock = get(),) }
+
     // community repo
     singleOf(::CommunityRepoImpl).bind<CommunityRepository>()
 
