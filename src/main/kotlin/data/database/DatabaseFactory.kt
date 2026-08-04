@@ -1,6 +1,7 @@
 package com.simbiri.data.database
 
 import com.simbiri.data.database.entity.auth.AuthenticationCredentialTable
+import com.simbiri.data.database.entity.auth.RefreshSessionTable
 import com.simbiri.data.database.entity.community.CommunityMemberTable
 import com.simbiri.data.database.entity.community.CommunitySocialLinkTable
 import com.simbiri.data.database.entity.community.CommunityTable
@@ -54,6 +55,7 @@ object DatabaseFactory {
             SchemaUtils.create(
                 UserTable,
                 AuthenticationCredentialTable,
+                RefreshSessionTable,
 
                 SocialPlatformTable,
                 SocialLinkTable,

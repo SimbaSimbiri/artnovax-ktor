@@ -10,9 +10,9 @@ import com.simbiri.domain.util.ResultType
 interface AccessTokenSessionCommandRepository {
 
     /**
-     * Invalidated every access token issued for the user.
+     * Invalidates every access token issued for the user.
      *
-     * The persisted session version must be incremented atomically so concurrent invalidation requestions cannot
+     * The persisted session version must be incremented atomically so concurrent invalidation requests cannot
      * overwrite one another
      */
     suspend fun invalidateAllSessions(

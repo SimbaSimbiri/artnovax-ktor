@@ -55,5 +55,10 @@ value class ConversationId(val value: UUID)
 @JvmInline
 value class MessageId(val value: UUID)
 
+@JvmInline
+value class RefreshSessionId( val value: UUID,)
+
+@JvmInline
+value class RefreshTokenFamilyId( val value: UUID,)
 
 typealias Timestamp = Instant

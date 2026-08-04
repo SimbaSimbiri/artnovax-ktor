@@ -15,6 +15,7 @@ import org.koin.core.module.dsl.singleOf
 import org.koin.dsl.bind
 import org.koin.dsl.module
 import com.simbiri.data.repository.AuthenticationCredentialRepoImpl
+import com.simbiri.data.repository.RefreshSessionRepoImpl
 import com.simbiri.data.security.Argon2PasswordHasher
 import com.simbiri.domain.repository.AuthenticationCredentialRepository
 import com.simbiri.domain.security.PasswordHasher
@@ -22,9 +23,13 @@ import com.simbiri.domain.security.AccessTokenIssuer
 import com.simbiri.presentation.auth.JwtAccessTokenIssuer
 import com.simbiri.presentation.auth.JwtSettings
 import com.simbiri.data.repository.UserRegistrationRepoImpl
+import com.simbiri.data.security.SecureOpaqueRefreshTokenIssuer
 import com.simbiri.domain.repository.AccessTokenSessionCommandRepository
 import com.simbiri.domain.repository.AccessTokenSessionRepository
+import com.simbiri.domain.repository.RefreshSessionRepository
 import com.simbiri.domain.repository.UserRegistrationRepository
+import com.simbiri.domain.security.RefreshTokenIssuer
+import com.simbiri.domain.security.RefreshTokenSettings
 
 /**
  * Contains only infrastructure level dependencies
@@ -47,9 +52,16 @@ val dataModule = module {
     // Access-token session validation
     singleOf(::AccessTokenSessionRepoImpl).bind<AccessTokenSessionRepository>()
     // Access-token session invalidation
-    single<AccessTokenSessionCommandRepository> { AccessTokenSessionCommandRepoImpl( db = get(), clock = get(),) }
+    single<AccessTokenSessionCommandRepository> { AccessTokenSessionCommandRepoImpl(db = get(), clock = get()) }
     // Transactional account registration
     single<UserRegistrationRepository> { UserRegistrationRepoImpl(db = get(), clock = get()) }
+
+    // Opaque refresh-token settings
+    single { RefreshTokenSettings.fromEnvironment()}
+    // Secure refresh-token generation
+    single<RefreshTokenIssuer> { SecureOpaqueRefreshTokenIssuer( settings = get(), clock = get(),) }
+    // Refresh-session persistence
+    single<RefreshSessionRepository> { RefreshSessionRepoImpl( db = get(), clock = get(),) }
 
     // community repo
     singleOf(::CommunityRepoImpl).bind<CommunityRepository>()
