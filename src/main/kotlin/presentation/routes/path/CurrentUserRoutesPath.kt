@@ -14,4 +14,12 @@ class CurrentUserRoutesPath {
     data class Password(
         val parent: CurrentUserRoutesPath = CurrentUserRoutesPath(),
     )
+
+    /**
+     * Access-token sessions belonging to the current user.
+     */
+    @Resource("sessions")
+    data class Sessions(
+        val parent: CurrentUserRoutesPath = CurrentUserRoutesPath(),
+    )
 }
