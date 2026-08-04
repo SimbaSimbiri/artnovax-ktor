@@ -15,6 +15,7 @@ data class AuthenticationCredentialEntity(
 
     val failedLoginAttempts: Int,
     val lockedUntil: Instant?,
+    val sessionVersion: Long,
 
     val createdAt: Instant,
     val updatedAt: Instant,

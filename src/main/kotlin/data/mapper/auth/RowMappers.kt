@@ -14,6 +14,7 @@ fun ResultRow.toAuthenticationCredentialEntity(): AuthenticationCredentialEntity
     passwordUpdatedAt = this[AuthenticationCredentialTable.passwordUpdatedAt],
     failedLoginAttempts = this[AuthenticationCredentialTable.failedLoginAttempts],
     lockedUntil = this[AuthenticationCredentialTable.lockedUntil],
+    sessionVersion = this[AuthenticationCredentialTable.sessionVersion],
     createdAt = this[AuthenticationCredentialTable.createdAt],
     updatedAt = this[AuthenticationCredentialTable.updatedAt],
 )

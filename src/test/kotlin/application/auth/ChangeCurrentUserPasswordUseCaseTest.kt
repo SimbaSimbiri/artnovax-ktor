@@ -93,6 +93,11 @@ class ChangeCurrentUserPasswordUseCaseTest {
             )
 
             assertEquals(
+                expected = 2L,
+                actual = updatedCredential.sessionVersion,
+            )
+
+            assertEquals(
                 expected = 1,
                 actual = passwordHasher.hashCalls,
             )

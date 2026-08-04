@@ -43,8 +43,8 @@ class UserRegistrationRepoImpl(
                  * when registrations occur concurrently.
                  */
                 val accountNameExists = UserTable.selectAll().where {
-                        UserTable.accountName eq userEntity.accountName
-                    }.limit(1).any()
+                    UserTable.accountName eq userEntity.accountName
+                }.limit(1).any()
 
                 if (accountNameExists) {
                     return@dbQuery ResultType.Failure(
@@ -55,8 +55,8 @@ class UserRegistrationRepoImpl(
                 }
 
                 val emailAddressExists = UserTable.selectAll().where {
-                        UserTable.emailAddress.lowerCase() eq userEntity.emailAddress
-                    }.limit(1).any()
+                    UserTable.emailAddress.lowerCase() eq userEntity.emailAddress
+                }.limit(1).any()
 
                 if (emailAddressExists) {
                     return@dbQuery ResultType.Failure(
@@ -88,15 +88,16 @@ class UserRegistrationRepoImpl(
                 }
 
                 AuthenticationCredentialTable.insert { row ->
-                        row[userId] = userEntity.id
-                        row[passwordHash] = registration.passwordHash
-                        row[passwordAlgorithm] = registration.passwordAlgorithm.name
-                        row[passwordUpdatedAt] = registration.passwordUpdatedAt
-                        row[failedLoginAttempts] = 0
-                        row[lockedUntil] = null
-                        row[createdAt] = now
-                        row[updatedAt] = now
-                    }
+                    row[userId] = userEntity.id
+                    row[passwordHash] = registration.passwordHash
+                    row[passwordAlgorithm] = registration.passwordAlgorithm.name
+                    row[passwordUpdatedAt] = registration.passwordUpdatedAt
+                    row[failedLoginAttempts] = 0
+                    row[lockedUntil] = null
+                    row[sessionVersion] = 1L
+                    row[createdAt] = now
+                    row[updatedAt] = now
+                }
 
                 ResultType.Success(
                     UserId(userEntity.id)

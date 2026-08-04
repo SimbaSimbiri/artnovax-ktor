@@ -10,5 +10,6 @@ interface AccessTokenIssuer {
 
     fun issue(
         userId: UserId,
+        sessionVersion: Long,
     ): IssuedAccessToken
 }

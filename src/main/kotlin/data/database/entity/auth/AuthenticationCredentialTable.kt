@@ -14,9 +14,9 @@ import org.jetbrains.exposed.sql.javatime.timestamp
 object AuthenticationCredentialTable : Table("authentication_credentials") {
 
     val userId = uuid("user_id").references(
-            UserTable.id,
-            onDelete = ReferenceOption.CASCADE,
-        )
+        UserTable.id,
+        onDelete = ReferenceOption.CASCADE,
+    )
 
     val passwordHash = varchar(
         name = "password_hash",
@@ -33,6 +33,11 @@ object AuthenticationCredentialTable : Table("authentication_credentials") {
     val failedLoginAttempts = integer("failed_login_attempts").default(0)
 
     val lockedUntil = timestamp("locked_until").nullable()
+
+    /**
+     * Version embedded in access tokens issued for this credential.
+     */
+    val sessionVersion = long("session_version").default(1L)
 
     val createdAt = timestamp("created_at")
 

@@ -37,12 +37,12 @@ class ChangeCurrentUserPasswordUseCase(
         }
 
         PasswordPolicy.validateForCredentialCreation(
-                newPassword
-            )?.let { error ->
-                return failure(
-                    PasswordChangeError.ValidationFailure(error)
-                )
-            }
+            newPassword
+        )?.let { error ->
+            return failure(
+                PasswordChangeError.ValidationFailure(error)
+            )
+        }
 
         val currentUser = when (val result = userRepository.getUserById(
             authenticatedUserId
@@ -63,8 +63,8 @@ class ChangeCurrentUserPasswordUseCase(
         }
 
         val credential = when (val result = credentialRepository.getCredentialByUserId(
-                authenticatedUserId
-            )) {
+            authenticatedUserId
+        )) {
             is ResultType.Success -> result.data
 
             is ResultType.Failure -> return dataFailure(
@@ -103,13 +103,13 @@ class ChangeCurrentUserPasswordUseCase(
 
             if (!currentPasswordMatches) {
                 val failedCredential = AuthenticationAttemptPolicy.afterFailedAttempt(
-                        credential = credential,
-                        attemptedAt = attemptedAt,
-                    )
+                    credential = credential,
+                    attemptedAt = attemptedAt,
+                )
 
                 when (val updateResult = credentialRepository.updateCredential(
-                        failedCredential
-                    )) {
+                    failedCredential
+                )) {
                     is ResultType.Success -> Unit
 
                     is ResultType.Failure -> return dataFailure(
@@ -139,17 +139,32 @@ class ChangeCurrentUserPasswordUseCase(
                 newPasswordCopy
             )
 
+            val nextSessionVersion = if (credential.sessionVersion == Long.MAX_VALUE) {
+                return dataFailure(
+                    DataError.UnknownError(
+                        cause = "Credential session version cannot be incremented."
+                    )
+                )
+            } else {
+                credential.sessionVersion + 1L
+            }
+
             val updatedCredential = credential.copy(
                 passwordHash = newPasswordHash,
                 passwordAlgorithm = passwordHasher.algorithm,
                 passwordUpdatedAt = attemptedAt,
                 failedLoginAttempts = 0,
                 lockedUntil = null,
+                /*
+                * Invalidates every access token issued before this password
+                * change, including the token used for this request.
+                */
+                sessionVersion = nextSessionVersion,
             )
 
             return when (val updateResult = credentialRepository.updateCredential(
-                    updatedCredential
-                )) {
+                updatedCredential
+            )) {
                 is ResultType.Success -> ResultType.Success(Unit)
 
                 is ResultType.Failure -> dataFailure(

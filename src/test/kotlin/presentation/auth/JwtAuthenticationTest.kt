@@ -1,5 +1,6 @@
 package com.simbiri.presentation.auth
 
+import com.simbiri.domain.model.common.UserId
 import com.simbiri.presentation.config.JWT_AUTH_PROVIDER
 import com.simbiri.presentation.config.configureAuthentication
 import com.simbiri.presentation.config.configureSerialization
@@ -18,6 +19,48 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 
 class JwtAuthenticationTest {
+
+    @Test
+    fun `protected route rejects token missing session version`() = testApplication {
+        application {
+            configureJwtTestApplication()
+        }
+
+        val token = TestJwtTokenFactory.createAccessToken(
+                settings = TEST_JWT_SETTINGS,
+                sessionVersion = null,
+            )
+
+        val response = client.get(PROTECTED_PATH) {
+            bearerToken(token)
+        }
+
+        assertUnauthorized(
+            response.status
+        )
+    }
+
+    @Test
+    fun `protected route rejects stale session version`() = testApplication {
+        application {
+            configureJwtTestApplication { _, sessionVersion,->
+                sessionVersion == 2L
+            }
+        }
+
+        val token = TestJwtTokenFactory.createAccessToken(
+                settings = TEST_JWT_SETTINGS,
+                sessionVersion = 1L,
+            )
+
+        val response = client.get(PROTECTED_PATH) {
+            bearerToken(token)
+        }
+
+        assertUnauthorized(
+            response.status
+        )
+    }
 
     @Test
     fun `protected route rejects request without bearer token`() = testApplication {
@@ -186,25 +229,31 @@ class JwtAuthenticationTest {
 }
 
 
-
 /**
  * Installs only the infrastructure required to exercise JWT verification.
  */
-private fun Application.configureJwtTestApplication() {
+private fun Application.configureJwtTestApplication(
+    validateAccessTokenSession: suspend (
+        UserId,
+        Long,
+    ) -> Boolean = { _, _ -> true },
+) {
     configureSerialization()
 
     configureAuthentication(
         settings = TEST_JWT_SETTINGS,
+
+        validateAccessTokenSession = validateAccessTokenSession,
     )
 
     routing {
-        authenticate(JWT_AUTH_PROVIDER) {
-            get("/test/protected") {
+        authenticate(
+            JWT_AUTH_PROVIDER
+        ) {
+            get(PROTECTED_PATH) {
                 val userId = requireNotNull(
                     call.authenticatedUserIdOrNull()
-                ) {
-                    "Authenticated route did not contain " + "an AuthenticatedUserPrincipal."
-                }
+                )
 
                 call.respondText(
                     userId.value.toString()
@@ -213,7 +262,6 @@ private fun Application.configureJwtTestApplication() {
         }
     }
 }
-
 
 /**
  * Adds a bearer token to a test HTTP request.

@@ -75,6 +75,7 @@ class ProvisionAuthenticationCredentialUseCase(
             passwordUpdatedAt = now,
             failedLoginAttempts = 0,
             lockedUntil = null,
+            sessionVersion = 1L,
             createdAt = null,
             updatedAt = null,
         )

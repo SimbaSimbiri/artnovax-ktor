@@ -27,30 +27,39 @@ class JwtAccessTokenIssuer(
 
     override fun issue(
         userId: UserId,
+        sessionVersion: Long,
     ): IssuedAccessToken {
+        require(sessionVersion > 0L) {
+            "JWT session version must be positive."
+        }
         val issuedAt = Instant.now(clock)
 
         val expiresAt = issuedAt.plusSeconds(
             settings.accessTokenTtlSeconds
         )
 
-        val token = JWT.create().withIssuer(
-                settings.issuer
-            ).withAudience(
-                settings.audience
-            ).withSubject(
-                userId.value.toString()
-            ).withIssuedAt(
-                Date.from(issuedAt)
-            ).withNotBefore(
-                Date.from(issuedAt)
-            ).withExpiresAt(
-                Date.from(expiresAt)
-            ).withJWTId(
-                UUID.randomUUID().toString()
-            ).sign(
-                signingAlgorithm
-            )
+        val token =
+            JWT.create()
+                .withIssuer(
+                    settings.issuer
+                ).withAudience(
+                    settings.audience
+                ).withSubject(
+                    userId.value.toString()
+                ).withClaim(
+                    JWT_SESSION_VERSION_CLAIM,
+                    sessionVersion
+                ).withIssuedAt(
+                    Date.from(issuedAt)
+                ).withNotBefore(
+                    Date.from(issuedAt)
+                ).withExpiresAt(
+                    Date.from(expiresAt)
+                ).withJWTId(
+                    UUID.randomUUID().toString()
+                ).sign(
+                    signingAlgorithm
+                )
 
         return IssuedAccessToken(
             value = token,

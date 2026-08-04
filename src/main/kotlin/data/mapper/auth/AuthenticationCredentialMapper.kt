@@ -18,6 +18,7 @@ fun AuthenticationCredentialEntity.toDomain(): AuthenticationCredential = Authen
     passwordUpdatedAt = passwordUpdatedAt,
     failedLoginAttempts = failedLoginAttempts,
     lockedUntil = lockedUntil,
+    sessionVersion = sessionVersion,
     createdAt = createdAt,
     updatedAt = updatedAt,
 )
@@ -35,6 +36,7 @@ fun AuthenticationCredential.toEntityForCreate(
     passwordUpdatedAt = passwordUpdatedAt,
     failedLoginAttempts = failedLoginAttempts,
     lockedUntil = lockedUntil,
+    sessionVersion = sessionVersion,
     createdAt = now,
     updatedAt = now,
 )

@@ -4,6 +4,7 @@ import com.simbiri.application.auth.AuthenticateUserUseCase
 import com.simbiri.application.auth.ChangeCurrentUserPasswordUseCase
 import com.simbiri.application.auth.ProvisionAuthenticationCredentialUseCase
 import com.simbiri.application.auth.RegisterUserUseCase
+import com.simbiri.application.auth.ValidateAccessTokenSessionUseCase
 import com.simbiri.application.community.*
 import com.simbiri.application.community.member.*
 import com.simbiri.application.therapy.context.TherapyContentContextLoader
@@ -40,6 +41,7 @@ val applicationModule = module {
     }
 
     // Authentication credential operations
+    singleOf(::ValidateAccessTokenSessionUseCase)
     singleOf(::ProvisionAuthenticationCredentialUseCase)
     singleOf(::AuthenticateUserUseCase)
     singleOf(::RegisterUserUseCase)

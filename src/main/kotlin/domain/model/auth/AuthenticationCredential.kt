@@ -18,6 +18,10 @@ data class AuthenticationCredential(
 
     val failedLoginAttempts: Int = 0,
     val lockedUntil: Timestamp? = null,
+    /**
+     * Invalidates previously issued access tokens when incremented.
+     */
+    val sessionVersion: Long = 1L,
 
     val createdAt: Timestamp? = null,
     val updatedAt: Timestamp? = null,
@@ -30,6 +34,10 @@ data class AuthenticationCredential(
 
         require(failedLoginAttempts >= 0) {
             "failedLoginAttempts must not be negative."
+        }
+
+        require(sessionVersion > 0L) {
+            "Authentication credential sessionVersion must be positive."
         }
     }
 
@@ -52,6 +60,7 @@ data class AuthenticationCredential(
                 "passwordUpdatedAt=$passwordUpdatedAt, " +
                 "failedLoginAttempts=$failedLoginAttempts, " +
                 "lockedUntil=$lockedUntil, " +
+                "sessionVersion=$sessionVersion, " +
                 "createdAt=$createdAt, " +
                 "updatedAt=$updatedAt" +
                 ")"
