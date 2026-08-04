@@ -3,6 +3,7 @@ package com.simbiri.presentation.config
 import com.simbiri.application.auth.AuthenticateUserUseCase
 import com.simbiri.application.auth.ChangeCurrentUserPasswordUseCase
 import com.simbiri.application.auth.LogoutAllDevicesUseCase
+import com.simbiri.application.auth.RefreshAccessTokenUseCase
 import com.simbiri.application.auth.RegisterUserUseCase
 import com.simbiri.application.community.*
 import com.simbiri.application.community.member.*
@@ -31,6 +32,7 @@ fun Application.configureRouting() {
     val registerUserUseCase: RegisterUserUseCase by inject()
     val changeCurrentUserPasswordUseCase: ChangeCurrentUserPasswordUseCase by inject()
     val logoutAllDevicesUseCase: LogoutAllDevicesUseCase by inject()
+    val refreshAccessTokenUseCase: RefreshAccessTokenUseCase by inject()
 
     // Community use cases
     val createCommunityUseCase: CreateCommunityUseCase by inject()
@@ -59,6 +61,7 @@ fun Application.configureRouting() {
         root()
 
         authenticationRoutes(authenticateUserUseCase = authenticateUserUseCase)
+        refreshAuthenticationRoutes (refreshAccessTokenUseCase = refreshAccessTokenUseCase)
         registrationRoutes(registerUserUseCase = registerUserUseCase)
 
         userRoutes(

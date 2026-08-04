@@ -1,7 +1,9 @@
 package com.simbiri.domain.repository
 
 import com.simbiri.domain.model.auth.RefreshSession
+import com.simbiri.domain.model.auth.RefreshSessionRotationResult
 import com.simbiri.domain.model.common.RefreshSessionId
+import com.simbiri.domain.model.common.Timestamp
 import com.simbiri.domain.util.DataError
 import com.simbiri.domain.util.ResultType
 
@@ -27,6 +29,21 @@ interface RefreshSessionRepository {
         tokenHash: String,
     ): ResultType<
             RefreshSession,
+            DataError,
+            >
+
+    /**
+     * Atomically consumes one refresh token and creates its replacement.
+     *
+     * The implementation must lock the current session row so concurrent
+     * requests cannot both rotate the same token successfully.
+     */
+    suspend fun rotateSession(
+        presentedTokenHash: String,
+        replacementTokenHash: String,
+        replacementExpiresAt: Timestamp,
+    ): ResultType<
+            RefreshSessionRotationResult,
             DataError,
             >
 }

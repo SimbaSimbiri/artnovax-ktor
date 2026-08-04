@@ -34,6 +34,16 @@ class AuthenticationRoutesTest {
             "2026-07-28T20:15:00Z"
         )
 
+        val expectedAccessExpiry =
+            Instant.parse(
+                "2026-07-28T20:15:00Z"
+            )
+
+        val expectedRefreshExpiry =
+            Instant.parse(
+                "2026-08-27T20:00:00Z"
+            )
+
         var receivedEmailAddress: String? = null
 
         var receivedPassword: CharArray? = null
@@ -57,7 +67,9 @@ class AuthenticationRoutesTest {
                         userId = expectedUserId,
                         accessToken = "signed-test-token",
                         tokenType = "Bearer",
-                        expiresAt = expectedExpiry,
+                        accessTokenExpiresAt = expectedAccessExpiry,
+                        refreshToken = "test-refresh-token",
+                        refreshTokenExpiresAt = expectedRefreshExpiry,
                     )
                 )
             }
@@ -113,8 +125,18 @@ class AuthenticationRoutesTest {
         )
 
         assertEquals(
-            expected = expectedExpiry.toString(),
-            actual = responseDto.expiresAt,
+            expected = expectedAccessExpiry.toString(),
+            actual = responseDto.accessTokenExpiresAt,
+        )
+
+        assertEquals(
+            expected = "test-refresh-token",
+            actual = responseDto.refreshToken,
+        )
+
+        assertEquals(
+            expected = expectedRefreshExpiry.toString(),
+            actual = responseDto.refreshTokenExpiresAt,
         )
 
         assertEquals(

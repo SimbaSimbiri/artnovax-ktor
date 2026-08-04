@@ -9,5 +9,7 @@ fun AuthenticatedSession.toResponseDto(): AuthenticatedSessionResponseDto = Auth
     userId = userId.value.toString(),
     accessToken = accessToken,
     tokenType = tokenType,
-    expiresAt = expiresAt.toString(),
+    accessTokenExpiresAt = accessTokenExpiresAt.toString(),
+    refreshToken = refreshToken,
+    refreshTokenExpiresAt = refreshTokenExpiresAt.toString(),
 )

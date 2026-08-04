@@ -13,8 +13,7 @@ class AuthenticationRoutesPath {
      */
     @Resource("register")
     data class Register(
-        val parent: AuthenticationRoutesPath =
-            AuthenticationRoutesPath(),
+        val parent: AuthenticationRoutesPath = AuthenticationRoutesPath(),
     )
 
     /**
@@ -22,7 +21,14 @@ class AuthenticationRoutesPath {
      */
     @Resource("login")
     data class Login(
-        val parent: AuthenticationRoutesPath =
-            AuthenticationRoutesPath(),
+        val parent: AuthenticationRoutesPath = AuthenticationRoutesPath(),
+    )
+
+    /**
+     * Rotates an opaque refresh token.
+     */
+    @Resource("refresh")
+    data class Refresh(
+        val parent: AuthenticationRoutesPath = AuthenticationRoutesPath(),
     )
 }
