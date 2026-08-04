@@ -311,6 +311,71 @@ class RefreshSessionRepoImpl(
         }
     }
 
+    override suspend fun revokeFamilyByTokenHash(
+        tokenHash: String,
+    ): ResultType<Unit, DataError> {
+        val operation =
+            "revokeRefreshSessionFamily"
+
+        if (!isSha256Hash(tokenHash)) {
+            return ResultType.Failure(
+                validationError(
+                    operation = operation,
+                    field = "tokenHash",
+                    value = "<redacted>",
+                    reason =
+                        "Refresh-token hash must be a lowercase " +
+                                "SHA-256 digest.",
+                )
+            )
+        }
+
+        return try {
+            db.dbQuery {
+                val now = Instant.now(clock)
+
+                /*
+                 * Lock the presented session row so logout and token rotation
+                 * cannot race successfully against one another.
+                 */
+                val currentRow = RefreshSessionTable.selectAll().where {
+                        RefreshSessionTable.tokenHash eq tokenHash
+                    }.forUpdate().singleOrNull()
+
+                /*
+                 * Unknown tokens are successful no-ops. The endpoint must not
+                 * reveal whether a refresh token ever existed.
+                 */
+                if (currentRow == null) {
+                    return@dbQuery ResultType.Success(
+                        Unit
+                    )
+                }
+
+                val persistedFamilyId = currentRow[RefreshSessionTable.familyId]
+
+                RefreshSessionTable.update(
+                    where = {
+                        (RefreshSessionTable.familyId eq persistedFamilyId) and RefreshSessionTable.revokedAt.isNull()
+                    }) { row ->
+                    row[RefreshSessionTable.revokedAt] = now
+
+                    row[RefreshSessionTable.updatedAt] = now
+                }
+
+                ResultType.Success(Unit)
+            }
+        } catch (e: Exception) {
+            ResultType.Failure(
+                databaseError(
+                    operation = operation,
+                    e = e,
+                    details = "tokenHash=<redacted>",
+                )
+            )
+        }
+    }
+
     /**
      * Revokes every currently active token in a rotation family.
      *

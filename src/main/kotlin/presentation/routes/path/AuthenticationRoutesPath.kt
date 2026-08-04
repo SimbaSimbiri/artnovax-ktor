@@ -31,4 +31,13 @@ class AuthenticationRoutesPath {
     data class Refresh(
         val parent: AuthenticationRoutesPath = AuthenticationRoutesPath(),
     )
+
+    /**
+     * Ends one renewable client login session.
+     */
+    @Resource("logout")
+    data class Logout(
+        val parent: AuthenticationRoutesPath =
+            AuthenticationRoutesPath(),
+    )
 }

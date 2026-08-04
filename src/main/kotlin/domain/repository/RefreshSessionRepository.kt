@@ -46,4 +46,14 @@ interface RefreshSessionRepository {
             RefreshSessionRotationResult,
             DataError,
             >
+
+    /**
+     * Revokes the complete rotation family containing the supplied token hash.
+     *
+     * Unknown and already-revoked tokens are treated as successful no-ops so
+     * logout remains idempotent and does not disclose token validity.
+     */
+    suspend fun revokeFamilyByTokenHash(
+        tokenHash: String,
+    ): ResultType<Unit, DataError>
 }

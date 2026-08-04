@@ -246,8 +246,8 @@ class RefreshAccessTokenUseCaseTest {
     @Test
     fun `expired refresh token returns invalid refresh token`() = runBlocking {
         val expiredSession = activeRefreshSession().copy(
-                expiresAt = NOW.minusSeconds(1)
-            )
+            expiresAt = NOW.minusSeconds(1)
+        )
 
         val repository = RefreshSessionRepositoryFake(
             lookupResult = ResultType.Success(
@@ -303,8 +303,8 @@ class RefreshAccessTokenUseCaseTest {
     @Test
     fun `revoked token reuse returns invalid refresh token`() = runBlocking {
         val revokedSession = activeRefreshSession().copy(
-                revokedAt = NOW.minusSeconds(30)
-            )
+            revokedAt = NOW.minusSeconds(30)
+        )
         val repository = RefreshSessionRepositoryFake(
             lookupResult = ResultType.Success(
                 revokedSession
@@ -435,7 +435,7 @@ class RefreshAccessTokenUseCaseTest {
     }
 
     @Test
-    fun `rotation identity mismatch returns data failure`() : Unit = runBlocking {
+    fun `rotation identity mismatch returns data failure`(): Unit = runBlocking {
         val currentSession = activeRefreshSession()
 
         val repository = RefreshSessionRepositoryFake(
@@ -569,6 +569,10 @@ private class RefreshSessionRepositoryFake(
 
         return rotationResult
     }
+
+    override suspend fun revokeFamilyByTokenHash(tokenHash: String): ResultType<Unit, DataError> = error(
+        "revokeFamilyByTokenHash is not used by RefreshAccessTokenUseCaseTest."
+    )
 }
 
 /**
