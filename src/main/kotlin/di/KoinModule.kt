@@ -26,6 +26,7 @@ import com.simbiri.data.repository.UserRegistrationRepoImpl
 import com.simbiri.data.security.SecureOpaqueRefreshTokenIssuer
 import com.simbiri.domain.repository.AccessTokenSessionCommandRepository
 import com.simbiri.domain.repository.AccessTokenSessionRepository
+import com.simbiri.domain.repository.RefreshSessionCleanupRepository
 import com.simbiri.domain.repository.RefreshSessionRepository
 import com.simbiri.domain.repository.UserRegistrationRepository
 import com.simbiri.domain.security.RefreshTokenIssuer
@@ -60,8 +61,10 @@ val dataModule = module {
     single { RefreshTokenSettings.fromEnvironment()}
     // Secure refresh-token generation
     single<RefreshTokenIssuer> { SecureOpaqueRefreshTokenIssuer( settings = get(), clock = get(),) }
-    // Refresh-session persistence
-    single<RefreshSessionRepository> { RefreshSessionRepoImpl( db = get(), clock = get(),) }
+    // refresh session and it's cleanup
+    single { RefreshSessionRepoImpl( db = get(), clock = get(),) }
+    single<RefreshSessionRepository> { get<RefreshSessionRepoImpl>() }
+    single<RefreshSessionCleanupRepository> { get<RefreshSessionRepoImpl>() }
 
     // community repo
     singleOf(::CommunityRepoImpl).bind<CommunityRepository>()

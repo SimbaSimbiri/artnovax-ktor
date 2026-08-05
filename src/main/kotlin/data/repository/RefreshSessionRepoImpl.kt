@@ -14,11 +14,13 @@ import com.simbiri.domain.model.auth.RefreshSessionRotationResult
 import com.simbiri.domain.model.common.RefreshSessionId
 import com.simbiri.domain.model.common.Timestamp
 import com.simbiri.domain.model.common.UserId
+import com.simbiri.domain.repository.RefreshSessionCleanupRepository
 import com.simbiri.domain.repository.RefreshSessionRepository
 import com.simbiri.domain.util.DataError
 import com.simbiri.domain.util.ResultType
 import org.jetbrains.exposed.dao.id.EntityID
 import org.jetbrains.exposed.sql.*
+import org.jetbrains.exposed.sql.SqlExpressionBuilder.inList
 import java.time.Clock
 import java.time.Instant
 import java.util.*
@@ -29,7 +31,7 @@ import java.util.*
 class RefreshSessionRepoImpl(
     private val db: Database,
     private val clock: Clock,
-) : RefreshSessionRepository {
+) : RefreshSessionRepository, RefreshSessionCleanupRepository {
 
     override suspend fun createSession(
         session: RefreshSession,
@@ -231,7 +233,6 @@ class RefreshSessionRepoImpl(
                 val authenticationRow = (UserTable innerJoin AuthenticationCredentialTable).selectAll().where {
                     UserTable.id eq EntityID(
                         id = persistedUserId,
-
                         table = UserTable,
                     )
                 }.singleOrNull()
@@ -267,7 +268,7 @@ class RefreshSessionRepoImpl(
                 if (revokedRows != 1) {
                     return@dbQuery ResultType.Failure(
                         DataError.UnknownError(
-                            cause = "Current refresh session could not " + "be consumed."
+                            cause = "Current refresh session could not be consumed."
                         )
                     )
                 }
@@ -291,11 +292,9 @@ class RefreshSessionRepoImpl(
                         refreshSessionId = RefreshSessionId(
                             replacementSessionId
                         ),
-
                         userId = UserId(
                             persistedUserId
                         ),
-
                         sessionVersion = currentSessionVersion,
                     )
                 )
@@ -324,8 +323,7 @@ class RefreshSessionRepoImpl(
                     field = "tokenHash",
                     value = "<redacted>",
                     reason =
-                        "Refresh-token hash must be a lowercase " +
-                                "SHA-256 digest.",
+                        "Refresh-token hash must be a lowercase SHA-256 digest.",
                 )
             )
         }
@@ -374,6 +372,73 @@ class RefreshSessionRepoImpl(
                 )
             )
         }
+    }
+
+    override suspend fun deleteSessionsExpiredBefore(
+        expiredBefore: Timestamp,
+        limit: Int,
+    ): ResultType<Int, DataError> {
+        val operation =
+            "deleteExpiredRefreshSessions"
+
+        if (
+            limit !in
+            MINIMUM_CLEANUP_BATCH_SIZE..
+            MAXIMUM_CLEANUP_BATCH_SIZE
+        ) {
+            return ResultType.Failure(
+                validationError(
+                    operation = operation,
+                    field = "limit",
+                    value = limit.toString(),
+                    reason =
+                        "Cleanup limit must be between " +
+                                "$MINIMUM_CLEANUP_BATCH_SIZE and " +
+                                "$MAXIMUM_CLEANUP_BATCH_SIZE.",
+                )
+            )
+        }
+
+        return try {
+            val deletedRows = db.dbQuery {
+                /*
+                 * We select a bounded batch first because PSQL does not
+                 * provide a portable DELETE ... LIMIT clause.
+                 */
+                val sessionIds = RefreshSessionTable.selectAll().where {
+                        RefreshSessionTable.expiresAt lessEq expiredBefore
+                    }.orderBy(
+                        RefreshSessionTable.expiresAt to SortOrder.ASC
+                    ).limit(limit).map { row ->
+                        row[RefreshSessionTable.id]
+                    }
+
+                if (sessionIds.isEmpty()) {
+                    return@dbQuery 0
+                }
+
+                RefreshSessionTable.deleteWhere {
+                    RefreshSessionTable.id inList sessionIds
+                }
+            }
+
+            ResultType.Success(
+                deletedRows
+            )
+        } catch (e: Exception) {
+            ResultType.Failure(
+                databaseError(
+                    operation = operation,
+                    e = e,
+                    details = "expiredBefore=$expiredBefore, limit=$limit",
+                )
+            )
+        }
+    }
+
+    private companion object{
+        const val MINIMUM_CLEANUP_BATCH_SIZE = 1
+        const val MAXIMUM_CLEANUP_BATCH_SIZE = 5000
     }
 
     /**

@@ -13,7 +13,6 @@ import com.simbiri.domain.util.ResultType
  */
 class LogoutCurrentDeviceUseCase(
     private val refreshSessionRepository: RefreshSessionRepository,
-
     private val refreshTokenIssuer: RefreshTokenIssuer,
 ) {
 

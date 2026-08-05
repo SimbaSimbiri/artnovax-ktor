@@ -20,7 +20,7 @@ data class RefreshSession(
     val tokenHash: String,
 
     /**
-     * Credential session version at the time this refresh session was
+     * credential.sessionVersion at the time this refresh session was
      * issued.
      *
      * Password changes and logout-all-devices increment the credential

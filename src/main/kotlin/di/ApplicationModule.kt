@@ -2,6 +2,7 @@ package com.simbiri.di
 
 import com.simbiri.application.auth.AuthenticateUserUseCase
 import com.simbiri.application.auth.ChangeCurrentUserPasswordUseCase
+import com.simbiri.application.auth.CleanupRefreshSessionsUseCase
 import com.simbiri.application.auth.LogoutAllDevicesUseCase
 import com.simbiri.application.auth.LogoutCurrentDeviceUseCase
 import com.simbiri.application.auth.ProvisionAuthenticationCredentialUseCase
@@ -52,6 +53,7 @@ val applicationModule = module {
     singleOf(::LogoutAllDevicesUseCase)
     singleOf(::LogoutCurrentDeviceUseCase)
     singleOf(::RefreshAccessTokenUseCase)
+    singleOf(::CleanupRefreshSessionsUseCase )
     // User use cases
     singleOf(::CreateUserUseCase)
     singleOf(::CreateUsersInBulkUseCase)

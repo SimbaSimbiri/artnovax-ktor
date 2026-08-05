@@ -3,6 +3,7 @@ package com.simbiri
 import com.simbiri.presentation.config.configureAuthentication
 import com.simbiri.presentation.config.configureKoin
 import com.simbiri.presentation.config.configureLogging
+import com.simbiri.presentation.config.configureRefreshSessionCleanup
 import com.simbiri.presentation.config.configureRouting
 import com.simbiri.presentation.config.configureSerialization
 import com.simbiri.presentation.config.configureStatusPages
@@ -16,6 +17,7 @@ fun main(args: Array<String>) {
 fun Application.module() {
     configureKoin()
     configureLogging()
+    configureRefreshSessionCleanup()
     configureSerialization()
     configureAuthentication()
     configureRouting()

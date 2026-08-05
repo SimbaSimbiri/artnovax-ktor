@@ -32,7 +32,11 @@ object RefreshSessionTable : UUIDTable("refresh_sessions") {
 
     val sessionVersion = long("session_version")
 
-    val expiresAt = timestamp("expires_at")
+    val expiresAt = timestamp(
+        "expires_at"
+    ).index(
+        customIndexName = "idx_refresh_sessions_expires_at"
+    )
 
     val revokedAt = timestamp("revoked_at").nullable()
 
