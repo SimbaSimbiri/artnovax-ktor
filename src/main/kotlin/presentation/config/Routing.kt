@@ -8,6 +8,10 @@ import com.simbiri.application.auth.RefreshAccessTokenUseCase
 import com.simbiri.application.auth.RegisterUserUseCase
 import com.simbiri.application.community.*
 import com.simbiri.application.community.member.*
+import com.simbiri.application.therapy.module.AddTherapyModuleUseCase
+import com.simbiri.application.therapy.module.RemoveTherapyModuleUseCase
+import com.simbiri.application.therapy.module.ReorderTherapyModulesUseCase
+import com.simbiri.application.therapy.module.UpdateTherapyModuleUseCase
 import com.simbiri.application.therapy.query.*
 import com.simbiri.application.user.*
 import com.simbiri.presentation.routes.*
@@ -65,6 +69,11 @@ fun Application.configureRouting() {
     val createTherapyDraftUseCase: CreateTherapyDraftUseCase by inject()
     val updateTherapyDraftUseCase: UpdateTherapyDraftUseCase by inject()
     val deleteTherapyDraftUseCase: DeleteTherapyDraftUseCase by inject()
+    // Managed therapy-module mutations
+    val addTherapyModuleUseCase: AddTherapyModuleUseCase by inject()
+    val updateTherapyModuleUseCase: UpdateTherapyModuleUseCase by inject()
+    val reorderTherapyModulesUseCase: ReorderTherapyModulesUseCase by inject()
+    val removeTherapyModuleUseCase: RemoveTherapyModuleUseCase by inject()
 
     routing {
         root()
@@ -124,6 +133,12 @@ fun Application.configureRouting() {
                 createTherapyDraftUseCase = createTherapyDraftUseCase,
                 updateTherapyDraftUseCase = updateTherapyDraftUseCase,
                 deleteTherapyDraftUseCase = deleteTherapyDraftUseCase,
+            )
+            managedTherapyModuleRoutes(
+                addTherapyModuleUseCase = addTherapyModuleUseCase,
+                updateTherapyModuleUseCase = updateTherapyModuleUseCase,
+                reorderTherapyModulesUseCase = reorderTherapyModulesUseCase,
+                removeTherapyModuleUseCase = removeTherapyModuleUseCase,
             )
         }
     }

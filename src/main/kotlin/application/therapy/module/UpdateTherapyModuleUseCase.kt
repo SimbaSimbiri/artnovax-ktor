@@ -28,66 +28,64 @@ class UpdateTherapyModuleUseCase(
             )
         )
 
-        val context = when (val result = contextLoader.load(
-            actorId = actorId,
-            therapySessionId = therapySessionId,
-        )) {
+        val context = when (
+            val result = contextLoader.load(
+                actorId = actorId,
+                therapySessionId = therapySessionId,
+            )
+        ) {
             is ResultType.Success -> result.data
-
             is ResultType.Failure -> return ResultType.Failure(result.error)
         }
 
         TherapyContentAccessPolicy.validateCanManageDraft(
-                actor = context.actor,
-                session = context.session,
-                operation = "update therapy module",
-            )?.let { error ->
-                return ResultType.Failure(error)
-            }
-
-        TherapyContentLifecyclePolicy.validateContentMutationAllowed(
-                context.session
-            )?.let { error ->
-                return ResultType.Failure(error)
-            }
-
-        val persistedModule = context.session.modules.firstOrNull { existing ->
-                existing.id == therapyModuleId
-            } ?: return ResultType.Failure(
-            DataError.NotFound
-        )
-
-        if (module.orderIndex != persistedModule.orderIndex) {
-            return ResultType.Failure(
-                DataError.Conflict(
-                    message = "Therapy module update failed. Module ordering cannot be changed through "
-                            + "UpdateTherapyModuleUseCase. therapyModuleId=${therapyModuleId.value}, "
-                            + "persistedOrderIndex=${persistedModule.orderIndex}, requestedOrderIndex=${module.orderIndex}. "
-                            + "Use ReorderTherapyModulesUseCase."
-                )
-            )
+            actor = context.actor,
+            session = context.session,
+            operation = "update therapy module",
+        )?.let { error ->
+            return ResultType.Failure(error)
         }
 
-        TherapyModulePolicy.validateDraft(module)?.let { error ->
-                return ResultType.Failure(error)
-            }
+        TherapyContentLifecyclePolicy.validateContentMutationAllowed(context.session)?.let { error ->
+            return ResultType.Failure(error)
+        }
 
-        val candidate = context.session.copy(
+        val persistedModule = context.session.modules.firstOrNull { existing ->
+            existing.id == therapyModuleId
+        } ?: return ResultType.Failure(DataError.NotFound)
+
+        /*
+         * Only module metadata is writable through this operation. Ordering, assets, identity, and persistence
+         * timestamps remain server-owned.
+         */
+        val candidateModule = persistedModule.copy(
+            title = module.title,
+            goal = module.goal,
+            instructions = module.instructions,
+            whyThisHelps = module.whyThisHelps,
+            modality = module.modality,
+            estimatedDurationSeconds = module.estimatedDurationSeconds,
+            isSkippable = module.isSkippable,
+            isRepeatable = module.isRepeatable,
+        )
+
+        TherapyModulePolicy.validateDraft(candidateModule)?.let { error ->
+            return ResultType.Failure(error)
+        }
+
+        val candidateSession = context.session.copy(
             modules = context.session.modules.map { existing ->
-                if (existing.id == therapyModuleId) {
-                    module
-                } else {
-                    existing
-                }
-            })
-
-        TherapyContentPolicy.validateDraft(candidate)?.let { error ->
-                return ResultType.Failure(error)
+                if (existing.id == therapyModuleId) candidateModule else existing
             }
+        )
+
+        TherapyContentPolicy.validateDraft(candidateSession)?.let { error ->
+            return ResultType.Failure(error)
+        }
 
         return therapyContentRepository.updateModule(
             therapySessionId = therapySessionId,
-            module = module,
+            module = candidateModule,
         )
     }
 }

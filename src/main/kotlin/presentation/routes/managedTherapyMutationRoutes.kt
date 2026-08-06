@@ -188,7 +188,7 @@ fun Routing.managedTherapyMutationRoutes(
 /**
  * Prevents management responses from being cached by clients or proxies.
  */
-private fun ApplicationCall.preventTherapyMutationCaching() {
+internal fun ApplicationCall.preventTherapyMutationCaching() {
     response.header(
         name = HttpHeaders.CacheControl,
         value = "no-store",
