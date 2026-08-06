@@ -24,6 +24,11 @@ import kotlin.getValue
 import com.simbiri.application.therapy.session.CreateTherapyDraftUseCase
 import com.simbiri.application.therapy.session.DeleteTherapyDraftUseCase
 import com.simbiri.application.therapy.session.UpdateTherapyDraftUseCase
+import com.simbiri.application.therapy.lifecycle.ArchiveTherapyContentUseCase
+import com.simbiri.application.therapy.lifecycle.PublishTherapyContentUseCase
+import com.simbiri.application.therapy.lifecycle.ReturnTherapyContentToDraftUseCase
+import com.simbiri.application.therapy.lifecycle.SubmitTherapyContentForReviewUseCase
+
 fun Application.configureRouting() {
     install(Resources)
 
@@ -74,6 +79,11 @@ fun Application.configureRouting() {
     val updateTherapyModuleUseCase: UpdateTherapyModuleUseCase by inject()
     val reorderTherapyModulesUseCase: ReorderTherapyModulesUseCase by inject()
     val removeTherapyModuleUseCase: RemoveTherapyModuleUseCase by inject()
+    // Managed therapy-content lifecycle mutations
+    val submitTherapyContentForReviewUseCase: SubmitTherapyContentForReviewUseCase by inject()
+    val returnTherapyContentToDraftUseCase: ReturnTherapyContentToDraftUseCase by inject()
+    val publishTherapyContentUseCase: PublishTherapyContentUseCase by inject()
+    val archiveTherapyContentUseCase: ArchiveTherapyContentUseCase by inject()
 
     routing {
         root()
@@ -139,6 +149,12 @@ fun Application.configureRouting() {
                 updateTherapyModuleUseCase = updateTherapyModuleUseCase,
                 reorderTherapyModulesUseCase = reorderTherapyModulesUseCase,
                 removeTherapyModuleUseCase = removeTherapyModuleUseCase,
+            )
+            managedTherapyLifecycleRoutes(
+                submitTherapyContentForReviewUseCase = submitTherapyContentForReviewUseCase,
+                returnTherapyContentToDraftUseCase = returnTherapyContentToDraftUseCase,
+                publishTherapyContentUseCase = publishTherapyContentUseCase,
+                archiveTherapyContentUseCase = archiveTherapyContentUseCase,
             )
         }
     }

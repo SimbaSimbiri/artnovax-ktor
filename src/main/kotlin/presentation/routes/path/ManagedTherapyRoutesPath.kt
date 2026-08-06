@@ -61,4 +61,46 @@ data class ManagedTherapyRoutesPath(
             val parent: Modules,
         )
     }
+
+    /**
+     * Groups commands that transition authored therapy content through its controlled lifecycle.
+     */
+    @Resource("{therapySessionId}/lifecycle")
+    data class Lifecycle(
+        val therapySessionId: String,
+        val parent: ManagedTherapyRoutesPath = ManagedTherapyRoutesPath(),
+    ) {
+
+        /**
+         * Moves complete draft content into clinical or administrative review.
+         */
+        @Resource("submit-for-review")
+        data class SubmitForReview(
+            val parent: Lifecycle,
+        )
+
+        /**
+         * Returns reviewed content to its editable draft state.
+         */
+        @Resource("return-to-draft")
+        data class ReturnToDraft(
+            val parent: Lifecycle,
+        )
+
+        /**
+         * Makes reviewed therapy content available through the public catalogue.
+         */
+        @Resource("publish")
+        data class Publish(
+            val parent: Lifecycle,
+        )
+
+        /**
+         * Removes published content from discovery while retaining its historical version.
+         */
+        @Resource("archive")
+        data class Archive(
+            val parent: Lifecycle,
+        )
+    }
 }
