@@ -31,39 +31,58 @@ class UpdateTherapyDraftUseCase(
         )) {
             is ResultType.Success -> result.data
 
-            is ResultType.Failure -> return ResultType.Failure(result.error)
+            is ResultType.Failure -> return ResultType.Failure(
+                result.error
+            )
         }
 
         TherapyContentAccessPolicy.validateCanManageDraft(
                 actor = context.actor,
+
                 session = context.session,
+
                 operation = "update therapy draft details",
             )?.let { error ->
-                return ResultType.Failure(error)
+                return ResultType.Failure(
+                    error
+                )
             }
 
         TherapyContentLifecyclePolicy.validateContentMutationAllowed(
                 context.session
             )?.let { error ->
-                return ResultType.Failure(error)
+                return ResultType.Failure(
+                    error
+                )
             }
 
         /*
-         * updateDraftDetails does not alter modules or lifecycle state.
+         * Begins with the persisted aggregate and copy only fields that this
+         * metadata operation permits the caller to edit.
+         *
          */
-        val candidate = session.copy(
-            status = context.session.status,
-            modules = context.session.modules,
-            createdAt = context.session.createdAt,
-            updatedAt = context.session.updatedAt,
-            publishedAt = context.session.publishedAt,
-            archivedAt = context.session.archivedAt,
+        val candidate = context.session.copy(
+            title = session.title,
+            description = session.description,
+            tagline = session.tagline,
+            therapeuticPriority = session.therapeuticPriority,
+            intensity = session.intensity,
+            locale = session.locale,
+            goalTags = session.goalTags,
+            contraindications = session.contraindications,
+            cultureTags = session.cultureTags,
         )
 
-        TherapyContentPolicy.validateDraft(candidate)?.let { error ->
-                return ResultType.Failure(error)
+        TherapyContentPolicy.validateDraft(
+                candidate
+            )?.let { error ->
+                return ResultType.Failure(
+                    error
+                )
             }
 
-        return therapyContentRepository.updateDraftDetails(candidate)
+        return therapyContentRepository.updateDraftDetails(
+                candidate
+            )
     }
 }

@@ -17,7 +17,9 @@ import io.ktor.server.resources.*
 import io.ktor.server.routing.*
 import org.koin.ktor.ext.inject
 import kotlin.getValue
-
+import com.simbiri.application.therapy.session.CreateTherapyDraftUseCase
+import com.simbiri.application.therapy.session.DeleteTherapyDraftUseCase
+import com.simbiri.application.therapy.session.UpdateTherapyDraftUseCase
 fun Application.configureRouting() {
     install(Resources)
 
@@ -59,6 +61,10 @@ fun Application.configureRouting() {
     val getManagedTherapySessionsUseCase: GetManagedTherapySessionsUseCase by inject()
     val getManagedTherapySessionByIdUseCase: GetManagedTherapySessionByIdUseCase by inject()
     val getLatestManagedTherapySessionVersionUseCase: GetLatestManagedTherapySessionVersionUseCase by inject()
+    // Managed therapy-content draft mutations
+    val createTherapyDraftUseCase: CreateTherapyDraftUseCase by inject()
+    val updateTherapyDraftUseCase: UpdateTherapyDraftUseCase by inject()
+    val deleteTherapyDraftUseCase: DeleteTherapyDraftUseCase by inject()
 
     routing {
         root()
@@ -113,6 +119,11 @@ fun Application.configureRouting() {
                 getManagedTherapySessionsUseCase = getManagedTherapySessionsUseCase,
                 getManagedTherapySessionByIdUseCase = getManagedTherapySessionByIdUseCase,
                 getLatestManagedTherapySessionVersionUseCase = getLatestManagedTherapySessionVersionUseCase,
+            )
+            managedTherapyMutationRoutes(
+                createTherapyDraftUseCase = createTherapyDraftUseCase,
+                updateTherapyDraftUseCase = updateTherapyDraftUseCase,
+                deleteTherapyDraftUseCase = deleteTherapyDraftUseCase,
             )
         }
     }
