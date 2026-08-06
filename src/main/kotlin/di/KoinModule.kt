@@ -31,7 +31,7 @@ import com.simbiri.domain.repository.RefreshSessionRepository
 import com.simbiri.domain.repository.UserRegistrationRepository
 import com.simbiri.domain.security.RefreshTokenIssuer
 import com.simbiri.domain.security.RefreshTokenSettings
-
+import com.simbiri.domain.repository.AuthenticationCredentialMutationRepository
 /**
  * Contains only infrastructure level dependencies
  */
@@ -43,7 +43,10 @@ val dataModule = module {
     singleOf(::UserRepoImpl).bind<UserRepository>()
 
     // Authentication credential repository
-    singleOf(::AuthenticationCredentialRepoImpl).bind<AuthenticationCredentialRepository>()
+    single { AuthenticationCredentialRepoImpl( db = get(), clock = get(),) }
+    single<AuthenticationCredentialRepository> { get<AuthenticationCredentialRepoImpl>() }
+    single<AuthenticationCredentialMutationRepository> { get<AuthenticationCredentialRepoImpl>() }
+
     // Password hashing infrastructure
     single<PasswordHasher> { Argon2PasswordHasher() }
     // JWT signing and verification settings

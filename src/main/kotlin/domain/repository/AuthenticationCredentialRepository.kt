@@ -18,10 +18,6 @@ interface AuthenticationCredentialRepository {
         credential: AuthenticationCredential,
     ): ResultType<Unit, DataError>
 
-    suspend fun updateCredential(
-        credential: AuthenticationCredential,
-    ): ResultType<Unit, DataError>
-
     suspend fun deleteCredentialByUserId(
         userId: UserId,
     ): ResultType<Unit, DataError>

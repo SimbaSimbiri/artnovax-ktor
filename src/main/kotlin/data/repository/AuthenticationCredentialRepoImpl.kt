@@ -24,11 +24,17 @@ import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.update
 import java.time.Clock
 import java.time.Instant
+import com.simbiri.domain.model.auth.AuthenticationAttemptMutationResult
+import com.simbiri.domain.model.auth.PasswordHashAlgorithm
+import com.simbiri.domain.policy.auth.AuthenticationAttemptPolicy
+import com.simbiri.domain.repository.AuthenticationCredentialMutationRepository
+import org.jetbrains.exposed.sql.SqlExpressionBuilder.plus
+import org.jetbrains.exposed.sql.and
 
 class AuthenticationCredentialRepoImpl(
     private val db: Database,
-    private val clock: Clock = Clock.systemUTC(),
-) : AuthenticationCredentialRepository {
+    private val clock: Clock,
+) : AuthenticationCredentialRepository, AuthenticationCredentialMutationRepository {
 
     override suspend fun getCredentialByUserId(
         userId: UserId,
@@ -147,34 +153,271 @@ class AuthenticationCredentialRepoImpl(
         }
     }
 
-    override suspend fun updateCredential(
-        credential: AuthenticationCredential,
-    ): ResultType<Unit, DataError> {
-        val operation = "updateCredential"
+
+    override suspend fun recordFailedLoginAttempt(
+        userId: UserId,
+        expectedPasswordHash: String,
+        expectedSessionVersion: Long,
+        attemptedAt: Instant,
+    ): ResultType<
+            AuthenticationAttemptMutationResult,
+            DataError,
+            > {
+        val operation = "recordFailedLoginAttempt"
+
+        if (expectedPasswordHash.isBlank() || expectedSessionVersion <= 0L) {
+            return ResultType.Failure(
+                validationError(
+                    operation = operation,
+                    field = "expectedCredential",
+                    value = "<redacted>",
+                    reason = "Expected password hash and session version " + "must be valid.",
+                )
+            )
+        }
+
+        return try {
+            db.dbQuery {
+                val credential = loadCredentialForUpdate(
+                    userId
+                ) ?: return@dbQuery ResultType.Failure(
+                    DataError.NotFound
+                )
+
+                if (!credential.matchesSnapshot(
+                        expectedPasswordHash = expectedPasswordHash,
+                        expectedSessionVersion = expectedSessionVersion,
+                    )
+                ) {
+                    return@dbQuery ResultType.Success(
+                        AuthenticationAttemptMutationResult.StaleCredential
+                    )
+                }
+
+                if (credential.isLockedAt(
+                        attemptedAt
+                    )
+                ) {
+                    return@dbQuery ResultType.Success(
+                        AuthenticationAttemptMutationResult.TemporarilyLocked
+                    )
+                }
+
+                val updatedCredential = AuthenticationAttemptPolicy.afterFailedAttempt(
+                        credential = credential,
+
+                        attemptedAt = attemptedAt,
+                    )
+
+                val updatedRows = updateAttemptStateInternal(
+                    credential = updatedCredential,
+
+                    updatedAt = Instant.now(clock),
+                )
+
+                if (updatedRows != 1) {
+                    return@dbQuery ResultType.Failure(
+                        DataError.UnknownError(
+                            cause = "Failed-login state could not be updated."
+                        )
+                    )
+                }
+
+                ResultType.Success(
+                    AuthenticationAttemptMutationResult.Applied(
+                            sessionVersion = credential.sessionVersion
+                        )
+                )
+            }
+        } catch (e: Exception) {
+            ResultType.Failure(
+                databaseError(
+                    operation = operation,
+                    e = e,
+                    details = "userId=${userId.value}, " + "expectedSessionVersion=" + expectedSessionVersion,
+                )
+            )
+        }
+    }
+
+    override suspend fun recordSuccessfulLogin(
+        userId: UserId,
+        expectedPasswordHash: String,
+        expectedSessionVersion: Long,
+        authenticatedAt: Instant,
+    ): ResultType<
+            AuthenticationAttemptMutationResult,
+            DataError,
+            > {
+        val operation = "recordSuccessfulLogin"
+
+        if (expectedPasswordHash.isBlank() || expectedSessionVersion <= 0L) {
+            return ResultType.Failure(
+                validationError(
+                    operation = operation,
+                    field = "expectedCredential",
+                    value = "<redacted>",
+                    reason = "Expected password hash and session version " + "must be valid.",
+                )
+            )
+        }
+
+        return try {
+            db.dbQuery {
+                val credential = loadCredentialForUpdate(
+                    userId
+                ) ?: return@dbQuery ResultType.Failure(
+                    DataError.NotFound
+                )
+
+                if (!credential.matchesSnapshot(
+                        expectedPasswordHash = expectedPasswordHash,
+                        expectedSessionVersion = expectedSessionVersion,
+                    )
+                ) {
+                    return@dbQuery ResultType.Success(
+                        AuthenticationAttemptMutationResult.StaleCredential
+                    )
+                }
+
+                /*
+                 * Recheck lock state under the row lock. Another request may
+                 * have locked the credential after the caller initially read it.
+                 */
+                if (credential.isLockedAt(
+                        authenticatedAt
+                    )
+                ) {
+                    return@dbQuery ResultType.Success(
+                        AuthenticationAttemptMutationResult.TemporarilyLocked
+                    )
+                }
+
+                val updatedCredential = AuthenticationAttemptPolicy.afterSuccessfulAttempt(
+                        credential
+                    )
+
+                if (updatedCredential != credential) {
+                    val updatedRows = updateAttemptStateInternal(
+                        credential = updatedCredential,
+                        updatedAt = Instant.now(clock),
+                    )
+
+                    if (updatedRows != 1) {
+                        return@dbQuery ResultType.Failure(
+                            DataError.UnknownError(
+                                cause = "Successful-login state could not " + "be updated."
+                            )
+                        )
+                    }
+                }
+
+                ResultType.Success(
+                    AuthenticationAttemptMutationResult.Applied(
+                            sessionVersion = credential.sessionVersion
+                        )
+                )
+            }
+        } catch (e: Exception) {
+            ResultType.Failure(
+                databaseError(
+                    operation = operation,
+                    e = e,
+                    details = "userId=${userId.value}, " + "expectedSessionVersion=" + expectedSessionVersion,
+                )
+            )
+        }
+    }
+
+    override suspend fun replacePasswordAndIncrementSessionVersion(
+        userId: UserId,
+        expectedPasswordHash: String,
+        expectedSessionVersion: Long,
+        passwordHash: String,
+        passwordAlgorithm: PasswordHashAlgorithm,
+        passwordUpdatedAt: Instant,
+    ): ResultType<Long, DataError> {
+        val operation = "replacePasswordAndIncrementSessionVersion"
+
+        if (expectedPasswordHash.isBlank() || passwordHash.isBlank()) {
+            return ResultType.Failure(
+                validationError(
+                    operation = operation,
+                    field = "passwordHash",
+                    value = "<redacted>",
+                    reason = "Password hashes must not be blank.",
+                )
+            )
+        }
+
+        if (expectedSessionVersion <= 0L) {
+            return ResultType.Failure(
+                validationError(
+                    operation = operation,
+                    field = "expectedSessionVersion",
+                    value = expectedSessionVersion.toString(),
+                    reason = "Expected session version must be positive.",
+                )
+            )
+        }
+
+        if (expectedSessionVersion == Long.MAX_VALUE) {
+            return ResultType.Failure(
+                DataError.UnknownError(
+                    cause = "Credential session version cannot be incremented."
+                )
+            )
+        }
 
         return try {
             db.dbQuery {
                 val now = Instant.now(clock)
 
+                /*
+                 * The password replacement and version increment execute in one
+                 * SQL statement. Failed-login requests cannot overwrite either
+                 * value because they now update only attempt-state columns.
+                 */
                 val updatedRows = AuthenticationCredentialTable.update(
                     where = {
-                        AuthenticationCredentialTable.userId eq credential.userId.value
+                        (AuthenticationCredentialTable.userId eq userId.value) and
+                                (AuthenticationCredentialTable.passwordHash eq expectedPasswordHash) and
+                                (AuthenticationCredentialTable.sessionVersion eq expectedSessionVersion) and
+                                (AuthenticationCredentialTable.sessionVersion less Long.MAX_VALUE)
                     }) { row ->
-                    row[passwordHash] = credential.passwordHash
-                    row[passwordAlgorithm] = credential.passwordAlgorithm.name
-                    row[passwordUpdatedAt] = credential.passwordUpdatedAt
-                    row[failedLoginAttempts] = credential.failedLoginAttempts
-                    row[lockedUntil] = credential.lockedUntil
-                    row[sessionVersion] = credential.sessionVersion
-                    row[updatedAt] = now
+                    row[AuthenticationCredentialTable.passwordHash] = passwordHash
+                    row[AuthenticationCredentialTable.passwordAlgorithm] = passwordAlgorithm.name
+                    row[AuthenticationCredentialTable.passwordUpdatedAt] = passwordUpdatedAt
+                    row[AuthenticationCredentialTable.failedLoginAttempts] = 0
+                    row[AuthenticationCredentialTable.lockedUntil] = null
+                    row[AuthenticationCredentialTable.sessionVersion] = AuthenticationCredentialTable.sessionVersion + 1L
+                    row[AuthenticationCredentialTable.updatedAt] = now
                 }
 
-                if (updatedRows == 0) {
+                if (updatedRows == 1) {
+                    return@dbQuery ResultType.Success(
+                        expectedSessionVersion + 1L
+                    )
+                }
+
+                val persistedCredential = AuthenticationCredentialTable.selectAll().where {
+                        AuthenticationCredentialTable.userId eq userId.value
+                    }.singleOrNull()
+
+                if (persistedCredential == null) {
                     ResultType.Failure(
                         DataError.NotFound
                     )
-                } else {
-                    ResultType.Success(Unit)
+                } else {/*
+                     * A password change, logout-all-devices operation, or another
+                     * concurrent credential mutation changed the expected
+                     * snapshot.
+                     */
+                    ResultType.Failure(
+                        DataError.Conflict(
+                            message = "Authentication credential changed " + "concurrently."
+                        )
+                    )
                 }
             }
         } catch (e: Exception) {
@@ -182,7 +425,7 @@ class AuthenticationCredentialRepoImpl(
                 databaseError(
                     operation = operation,
                     e = e,
-                    details = "userId=${credential.userId.value}, algorithm=" + credential.passwordAlgorithm,
+                    details = "userId=${userId.value}, " + "expectedSessionVersion=" + expectedSessionVersion,
                 )
             )
         }
@@ -217,4 +460,39 @@ class AuthenticationCredentialRepoImpl(
             )
         }
     }
+
+    /**
+     * Loads and locks one credential for an attempt-state mutation.
+     */
+    private fun loadCredentialForUpdate(
+        userId: UserId,
+    ): AuthenticationCredential? = AuthenticationCredentialTable.selectAll().where {
+            AuthenticationCredentialTable.userId eq userId.value
+        }.forUpdate().singleOrNull()?.toAuthenticationCredentialEntity()?.toDomain()
+
+    /**
+     * Updates only failed-attempt fields.
+     *
+     * Password state and sessionVersion are intentionally excluded.
+     */
+    private fun updateAttemptStateInternal(
+        credential: AuthenticationCredential,
+        updatedAt: Instant,
+    ): Int = AuthenticationCredentialTable.update(
+        where = {
+            AuthenticationCredentialTable.userId eq credential.userId.value
+        }) { row ->
+        row[AuthenticationCredentialTable.failedLoginAttempts] = credential.failedLoginAttempts
+        row[AuthenticationCredentialTable.lockedUntil] = credential.lockedUntil
+        row[AuthenticationCredentialTable.updatedAt] = updatedAt
+    }
+
+    /**
+     * Confirms that password verification was performed against the credential
+     * currently locked by the transaction.
+     */
+    private fun AuthenticationCredential.matchesSnapshot(
+        expectedPasswordHash: String,
+        expectedSessionVersion: Long,
+    ): Boolean = passwordHash == expectedPasswordHash && sessionVersion == expectedSessionVersion
 }

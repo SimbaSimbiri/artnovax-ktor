@@ -5,7 +5,6 @@ import com.simbiri.domain.model.auth.AuthenticationCredential
 import com.simbiri.domain.model.auth.AuthenticationError
 import com.simbiri.domain.model.auth.RefreshSession
 import com.simbiri.domain.model.common.RefreshTokenFamilyId
-import com.simbiri.domain.policy.auth.AuthenticationAttemptPolicy
 import com.simbiri.domain.policy.auth.PasswordPolicy
 import com.simbiri.domain.policy.user.EmailAddressNormalizer
 import com.simbiri.domain.repository.AuthenticationCredentialRepository
@@ -19,7 +18,8 @@ import com.simbiri.domain.util.ResultType
 import java.time.Clock
 import java.time.Instant
 import java.util.UUID
-
+import com.simbiri.domain.model.auth.AuthenticationAttemptMutationResult
+import com.simbiri.domain.repository.AuthenticationCredentialMutationRepository
 /**
  * Authenticates one active user using an email address and password.
  *
@@ -37,6 +37,7 @@ class AuthenticateUserUseCase(
     private val userRepository: UserRepository,
     private val credentialRepository: AuthenticationCredentialRepository,
     private val refreshSessionRepository: RefreshSessionRepository,
+    private val credentialMutationRepository: AuthenticationCredentialMutationRepository,
     private val passwordHasher: PasswordHasher,
     private val accessTokenIssuer: AccessTokenIssuer,
     private val refreshTokenIssuer: RefreshTokenIssuer,
@@ -121,37 +122,42 @@ class AuthenticateUserUseCase(
         )
 
         if (!passwordMatches) {
-            val failedCredential = AuthenticationAttemptPolicy.afterFailedAttempt(
-                    credential = credential,
+            when (val result = credentialMutationRepository.recordFailedLoginAttempt(
+                    userId = userId,
+                    expectedPasswordHash = credential.passwordHash,
+                    expectedSessionVersion = credential.sessionVersion,
                     attemptedAt = attemptedAt,
-                )
-
-            when (val result = credentialRepository.updateCredential(
-                    failedCredential
                 )) {
-                is ResultType.Success -> Unit
-
                 is ResultType.Failure -> return dataFailure(
                     result.error
                 )
-            }
 
-            return invalidCredentials()
+                is ResultType.Success ->/*
+                     * Invalid, stale, and newly locked attempts all retain the same
+                     * externally generic authentication result.
+                     */
+                    return invalidCredentials()
+            }
         }
 
-        val successfulCredential = AuthenticationAttemptPolicy.afterSuccessfulAttempt(
-                credential
+        val authenticatedSessionVersion = when (val result = credentialMutationRepository.recordSuccessfulLogin(
+                userId = userId,
+                expectedPasswordHash = credential.passwordHash,
+                expectedSessionVersion = credential.sessionVersion,
+                authenticatedAt = attemptedAt,
+            )) {
+            is ResultType.Failure -> return dataFailure(
+                result.error
             )
 
-        if (successfulCredential != credential) {
-            when (val result = credentialRepository.updateCredential(
-                    successfulCredential
-                )) {
-                is ResultType.Success -> Unit
+            is ResultType.Success -> when (val mutation = result.data) {
+                is AuthenticationAttemptMutationResult.Applied -> mutation.sessionVersion
 
-                is ResultType.Failure -> return dataFailure(
-                    result.error
+                AuthenticationAttemptMutationResult.TemporarilyLocked -> return ResultType.Failure(
+                    AuthenticationError.TemporarilyLocked
                 )
+
+                AuthenticationAttemptMutationResult.StaleCredential -> return invalidCredentials()
             }
         }
 
@@ -162,7 +168,7 @@ class AuthenticateUserUseCase(
         val issuedAccessToken = try {
             accessTokenIssuer.issue(
                 userId = userId,
-                sessionVersion = successfulCredential.sessionVersion,
+                sessionVersion = authenticatedSessionVersion
             )
         } catch (_: Exception) {
             return dataFailure(
@@ -192,7 +198,7 @@ class AuthenticateUserUseCase(
             ),
             userId = userId,
             tokenHash = issuedRefreshToken.hash,
-            sessionVersion = successfulCredential.sessionVersion,
+            sessionVersion = authenticatedSessionVersion,
             expiresAt = issuedRefreshToken.expiresAt,
         )
 

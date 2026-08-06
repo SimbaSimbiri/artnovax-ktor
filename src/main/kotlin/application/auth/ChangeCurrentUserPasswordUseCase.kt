@@ -1,9 +1,11 @@
 package com.simbiri.application.auth
 
+import com.simbiri.domain.model.auth.AuthenticationAttemptMutationResult
 import com.simbiri.domain.model.auth.PasswordChangeError
 import com.simbiri.domain.model.common.UserId
 import com.simbiri.domain.policy.auth.AuthenticationAttemptPolicy
 import com.simbiri.domain.policy.auth.PasswordPolicy
+import com.simbiri.domain.repository.AuthenticationCredentialMutationRepository
 import com.simbiri.domain.repository.AuthenticationCredentialRepository
 import com.simbiri.domain.repository.UserRepository
 import com.simbiri.domain.security.PasswordHasher
@@ -21,6 +23,7 @@ import java.time.Instant
 class ChangeCurrentUserPasswordUseCase(
     private val userRepository: UserRepository,
     private val credentialRepository: AuthenticationCredentialRepository,
+    private val credentialMutationRepository: AuthenticationCredentialMutationRepository,
     private val passwordHasher: PasswordHasher,
     private val clock: Clock,
 ) {
@@ -102,24 +105,29 @@ class ChangeCurrentUserPasswordUseCase(
             )
 
             if (!currentPasswordMatches) {
-                val failedCredential = AuthenticationAttemptPolicy.afterFailedAttempt(
-                    credential = credential,
-                    attemptedAt = attemptedAt,
-                )
+                when (val attemptResult = credentialMutationRepository.recordFailedLoginAttempt(
+                        userId = authenticatedUserId,
+                        expectedPasswordHash = credential.passwordHash,
+                        expectedSessionVersion = credential.sessionVersion,
 
-                when (val updateResult = credentialRepository.updateCredential(
-                    failedCredential
-                )) {
-                    is ResultType.Success -> Unit
-
+                        attemptedAt = attemptedAt,
+                    )) {
                     is ResultType.Failure -> return dataFailure(
-                        updateResult.error
+                        attemptResult.error
                     )
-                }
 
-                return failure(
-                    PasswordChangeError.InvalidCurrentPassword
-                )
+                    is ResultType.Success -> when (attemptResult.data) {
+                        AuthenticationAttemptMutationResult.TemporarilyLocked -> return failure(
+                            PasswordChangeError.TemporarilyLocked
+                        )
+
+                        is AuthenticationAttemptMutationResult.Applied,
+                        AuthenticationAttemptMutationResult.StaleCredential,
+                            -> return failure(
+                            PasswordChangeError.InvalidCurrentPassword
+                        )
+                    }
+                }
             }
 
             /*
@@ -139,32 +147,14 @@ class ChangeCurrentUserPasswordUseCase(
                 newPasswordCopy
             )
 
-            val nextSessionVersion = if (credential.sessionVersion == Long.MAX_VALUE) {
-                return dataFailure(
-                    DataError.UnknownError(
-                        cause = "Credential session version cannot be incremented."
-                    )
-                )
-            } else {
-                credential.sessionVersion + 1L
-            }
-
-            val updatedCredential = credential.copy(
-                passwordHash = newPasswordHash,
-                passwordAlgorithm = passwordHasher.algorithm,
-                passwordUpdatedAt = attemptedAt,
-                failedLoginAttempts = 0,
-                lockedUntil = null,
-                /*
-                * Invalidates every access token issued before this password
-                * change, including the token used for this request.
-                */
-                sessionVersion = nextSessionVersion,
-            )
-
-            return when (val updateResult = credentialRepository.updateCredential(
-                updatedCredential
-            )) {
+            return when (val updateResult = credentialMutationRepository.replacePasswordAndIncrementSessionVersion(
+                    userId = authenticatedUserId,
+                    expectedPasswordHash = credential.passwordHash,
+                    expectedSessionVersion = credential.sessionVersion,
+                    passwordHash = newPasswordHash,
+                    passwordAlgorithm = passwordHasher.algorithm,
+                    passwordUpdatedAt = attemptedAt,
+                )) {
                 is ResultType.Success -> ResultType.Success(Unit)
 
                 is ResultType.Failure -> dataFailure(
