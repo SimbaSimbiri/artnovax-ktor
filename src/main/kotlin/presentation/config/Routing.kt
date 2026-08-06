@@ -29,6 +29,10 @@ import com.simbiri.application.therapy.lifecycle.PublishTherapyContentUseCase
 import com.simbiri.application.therapy.lifecycle.ReturnTherapyContentToDraftUseCase
 import com.simbiri.application.therapy.lifecycle.SubmitTherapyContentForReviewUseCase
 import com.simbiri.application.therapy.asset.RequestTherapyAssetUploadUseCase
+import com.simbiri.application.therapy.asset.ConfirmTherapyAssetUploadUseCase
+import com.simbiri.application.therapy.asset.GetManagedTherapyAssetDownloadUseCase
+import com.simbiri.application.therapy.asset.GetPublishedTherapyAssetDownloadUseCase
+
 
 fun Application.configureRouting() {
     install(Resources)
@@ -87,6 +91,11 @@ fun Application.configureRouting() {
     val archiveTherapyContentUseCase: ArchiveTherapyContentUseCase by inject()
     // Managed therapy-asset uploads
     val requestTherapyAssetUploadUseCase: RequestTherapyAssetUploadUseCase by inject()
+    // Therapy asset workflows
+    val confirmTherapyAssetUploadUseCase: ConfirmTherapyAssetUploadUseCase by inject()
+    val getPublishedTherapyAssetDownloadUseCase: GetPublishedTherapyAssetDownloadUseCase by inject()
+    val getManagedTherapyAssetDownloadUseCase: GetManagedTherapyAssetDownloadUseCase by inject()
+
 
     routing {
         root()
@@ -121,6 +130,10 @@ fun Application.configureRouting() {
         publishedTherapyRoutes(
             getPublishedTherapySessionsUseCase = getPublishedTherapySessionsUseCase,
             getPublishedTherapySessionByIdUseCase = getPublishedTherapySessionByIdUseCase,
+        )
+
+        publishedTherapyAssetRoutes(
+            getPublishedTherapyAssetDownloadUseCase = getPublishedTherapyAssetDownloadUseCase,
         )
 
         authenticate(JWT_AUTH_PROVIDER) {
@@ -161,6 +174,10 @@ fun Application.configureRouting() {
             )
             managedTherapyAssetUploadRoutes(
                 requestTherapyAssetUploadUseCase = requestTherapyAssetUploadUseCase,
+                confirmTherapyAssetUploadUseCase = confirmTherapyAssetUploadUseCase,
+            )
+            managedTherapyAssetRoutes(
+                getManagedTherapyAssetDownloadUseCase = getManagedTherapyAssetDownloadUseCase,
             )
         }
     }

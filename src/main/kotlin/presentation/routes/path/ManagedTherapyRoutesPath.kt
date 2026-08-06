@@ -105,11 +105,34 @@ data class ManagedTherapyRoutesPath(
     }
 
     /**
-     * Requests temporary upload access for a therapy-session or module asset.
+     * Requests and confirms temporary asset uploads.
      */
     @Resource("{therapySessionId}/asset-uploads")
     data class AssetUploads(
         val therapySessionId: String,
         val parent: ManagedTherapyRoutesPath = ManagedTherapyRoutesPath(),
-    )
+    ) {
+
+        @Resource("confirm")
+        data class Confirm(
+            val parent: AssetUploads,
+        )
+    }
+
+    /**
+     * Provides temporary delivery access to managed therapy assets.
+     */
+    @Resource("{therapySessionId}/assets")
+    data class Assets(
+        val therapySessionId: String,
+        val parent: ManagedTherapyRoutesPath = ManagedTherapyRoutesPath(),
+    ) {
+
+        @Resource("{therapyAssetId}/download")
+        data class Download(
+            val therapyAssetId: String,
+            val parent: Assets,
+        )
+    }
+
 }

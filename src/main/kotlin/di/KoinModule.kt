@@ -36,6 +36,12 @@ import com.simbiri.data.storage.S3TherapyAssetUploadGateway
 import com.simbiri.domain.storage.TherapyAssetUploadGateway
 import software.amazon.awssdk.regions.Region
 import software.amazon.awssdk.services.s3.presigner.S3Presigner
+import com.simbiri.data.repository.TherapyAssetRepoImpl
+import com.simbiri.data.storage.S3TherapyAssetObjectStorage
+import com.simbiri.domain.repository.TherapyAssetRepository
+import com.simbiri.domain.storage.TherapyAssetObjectStorage
+import software.amazon.awssdk.services.s3.S3Client
+
 
 /**
  * Contains only infrastructure level dependencies
@@ -79,6 +85,7 @@ val dataModule = module {
 
     // therapy repo
     singleOf(::TherapyContentRepoImpl).bind<TherapyContentRepository>()
+    singleOf(::TherapyAssetRepoImpl).bind<TherapyAssetRepository>()
     // s3 asset uploads for modules
     single {
         val regionName = System.getenv("AWS_REGION") ?: "us-east-1"
@@ -90,6 +97,22 @@ val dataModule = module {
     single<TherapyAssetUploadGateway> {
         S3TherapyAssetUploadGateway(
             bucketName = System.getenv("ARTNOVAX_THERAPY_ASSET_BUCKET").orEmpty(),
+            presigner = get<S3Presigner>(),
+            clock = get(),
+        )
+    }
+    single {
+        val regionName = System.getenv("AWS_REGION") ?: "us-east-1"
+
+        S3Client.builder()
+            .region(Region.of(regionName))
+            .build()
+    }
+
+    single<TherapyAssetObjectStorage> {
+        S3TherapyAssetObjectStorage(
+            bucketName = System.getenv("ARTNOVAX_THERAPY_ASSET_BUCKET").orEmpty(),
+            s3Client = get<S3Client>(),
             presigner = get<S3Presigner>(),
             clock = get(),
         )

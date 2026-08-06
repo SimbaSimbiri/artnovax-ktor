@@ -10,6 +10,7 @@ import software.amazon.awssdk.services.s3.presigner.S3Presigner
 import software.amazon.awssdk.services.s3.presigner.model.PutObjectPresignRequest
 import java.time.Clock
 import java.time.Duration
+import java.util.Base64
 
 class S3TherapyAssetUploadGateway(
     private val bucketName: String,
@@ -35,6 +36,7 @@ class S3TherapyAssetUploadGateway(
                 .key(specification.storageKey)
                 .contentType(specification.mimeType)
                 .contentLength(specification.sizeBytes)
+                .checksumSHA256(sha256HexToBase64(specification.sha256))
                 .metadata(
                     mapOf(
                         SHA_256_METADATA_KEY to specification.sha256,
@@ -78,4 +80,18 @@ class S3TherapyAssetUploadGateway(
     private companion object {
         const val SHA_256_METADATA_KEY = "sha256"
     }
+}
+
+internal fun sha256HexToBase64(value: String): String {
+    val normalizedValue = value.trim()
+
+    require(normalizedValue.length == 64) {
+        "SHA-256 must contain exactly 64 hexadecimal characters."
+    }
+
+    val bytes = ByteArray(normalizedValue.length / 2) { index ->
+        normalizedValue.substring(index * 2, index * 2 + 2).toInt(16).toByte()
+    }
+
+    return Base64.getEncoder().encodeToString(bytes)
 }

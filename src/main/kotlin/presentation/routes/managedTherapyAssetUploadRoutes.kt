@@ -1,9 +1,13 @@
 package com.simbiri.presentation.routes
 
+import com.simbiri.application.therapy.asset.ConfirmTherapyAssetUploadUseCase
 import com.simbiri.application.therapy.asset.RequestTherapyAssetUploadUseCase
 import com.simbiri.domain.util.ResultType
 import com.simbiri.presentation.auth.authenticatedUserIdOrRespondUnauthorized
+import com.simbiri.presentation.routes.dto.therapy.management.ConfirmTherapyAssetUploadRequestDto
+import com.simbiri.presentation.routes.dto.therapy.management.ConfirmedTherapyAssetResponseDto
 import com.simbiri.presentation.routes.dto.therapy.management.TherapyAssetUploadRequestDto
+import com.simbiri.presentation.routes.dto.therapy.management.toConfirmationRequestOrFailure
 import com.simbiri.presentation.routes.dto.therapy.management.toResponseDto
 import com.simbiri.presentation.routes.dto.therapy.management.toTherapyAssetUploadRequestOrFailure
 import com.simbiri.presentation.routes.path.ManagedTherapyRoutesPath
@@ -17,6 +21,7 @@ import io.ktor.server.routing.Routing
 
 fun Routing.managedTherapyAssetUploadRoutes(
     requestTherapyAssetUploadUseCase: RequestTherapyAssetUploadUseCase,
+    confirmTherapyAssetUploadUseCase: ConfirmTherapyAssetUploadUseCase,
 ) {
 
     // POST /management/therapy-sessions/{therapySessionId}/asset-uploads
@@ -58,10 +63,64 @@ fun Routing.managedTherapyAssetUploadRoutes(
                 request = request,
             )
         ) {
-            is ResultType.Success -> call.respond(
-                status = HttpStatusCode.Created,
-                message = result.data.toResponseDto(),
+            is ResultType.Success -> {
+                call.respond(
+                    status = HttpStatusCode.Created,
+                    message = result.data.toResponseDto(),
+                )
+            }
+
+            is ResultType.Failure -> respondWithDataError(result.error)
+        }
+    }
+
+    // POST /management/therapy-sessions/{therapySessionId}/asset-uploads/confirm
+    post<ManagedTherapyRoutesPath.AssetUploads.Confirm> { path ->
+        call.preventTherapyMutationCaching()
+
+        val actorId = authenticatedUserIdOrRespondUnauthorized() ?: return@post
+
+        val therapySessionId = when (
+            val result = parseTherapySessionIdOrFailure(
+                operation = "confirmTherapyAssetUpload",
+                rawTherapySessionId = path.parent.therapySessionId,
             )
+        ) {
+            is ResultType.Success -> result.data
+
+            is ResultType.Failure -> {
+                respondWithDataError(result.error)
+                return@post
+            }
+        }
+
+        val requestDto = call.receive<ConfirmTherapyAssetUploadRequestDto>()
+
+        val request = when (
+            val result = requestDto.toConfirmationRequestOrFailure(therapySessionId)
+        ) {
+            is ResultType.Success -> result.data
+
+            is ResultType.Failure -> {
+                respondWithDataError(result.error)
+                return@post
+            }
+        }
+
+        when (
+            val result = confirmTherapyAssetUploadUseCase(
+                actorId = actorId,
+                request = request,
+            )
+        ) {
+            is ResultType.Success -> {
+                call.respond(
+                    status = HttpStatusCode.OK,
+                    message = ConfirmedTherapyAssetResponseDto(
+                        therapyAssetId = result.data.value.toString(),
+                    ),
+                )
+            }
 
             is ResultType.Failure -> respondWithDataError(result.error)
         }

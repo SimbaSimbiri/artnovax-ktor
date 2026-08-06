@@ -30,6 +30,11 @@ import org.koin.dsl.module
 import java.time.Clock
 import com.simbiri.application.therapy.asset.RequestTherapyAssetUploadUseCase
 import com.simbiri.application.therapy.asset.TherapyAssetStorageKeyFactory
+import com.simbiri.application.therapy.asset.ConfirmTherapyAssetUploadUseCase
+import com.simbiri.application.therapy.asset.GetManagedTherapyAssetDownloadUseCase
+import com.simbiri.application.therapy.asset.GetPublishedTherapyAssetDownloadUseCase
+
+
 /**
  * Provides application-layer dependencies.
  *
@@ -111,7 +116,10 @@ val applicationModule = module {
     singleOf(::GetLatestManagedTherapySessionVersionUseCase)
 
     // s3 asset uploads
-    // Therapy asset upload workflow
+    // Therapy asset workflows
     single { TherapyAssetStorageKeyFactory() }
     singleOf(::RequestTherapyAssetUploadUseCase)
+    singleOf(::ConfirmTherapyAssetUploadUseCase)
+    singleOf(::GetPublishedTherapyAssetDownloadUseCase)
+    singleOf(::GetManagedTherapyAssetDownloadUseCase)
 }
