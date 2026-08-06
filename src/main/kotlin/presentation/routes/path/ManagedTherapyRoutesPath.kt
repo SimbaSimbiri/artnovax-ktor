@@ -103,4 +103,13 @@ data class ManagedTherapyRoutesPath(
             val parent: Lifecycle,
         )
     }
+
+    /**
+     * Requests temporary upload access for a therapy-session or module asset.
+     */
+    @Resource("{therapySessionId}/asset-uploads")
+    data class AssetUploads(
+        val therapySessionId: String,
+        val parent: ManagedTherapyRoutesPath = ManagedTherapyRoutesPath(),
+    )
 }

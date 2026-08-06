@@ -28,6 +28,7 @@ import com.simbiri.application.therapy.lifecycle.ArchiveTherapyContentUseCase
 import com.simbiri.application.therapy.lifecycle.PublishTherapyContentUseCase
 import com.simbiri.application.therapy.lifecycle.ReturnTherapyContentToDraftUseCase
 import com.simbiri.application.therapy.lifecycle.SubmitTherapyContentForReviewUseCase
+import com.simbiri.application.therapy.asset.RequestTherapyAssetUploadUseCase
 
 fun Application.configureRouting() {
     install(Resources)
@@ -84,6 +85,8 @@ fun Application.configureRouting() {
     val returnTherapyContentToDraftUseCase: ReturnTherapyContentToDraftUseCase by inject()
     val publishTherapyContentUseCase: PublishTherapyContentUseCase by inject()
     val archiveTherapyContentUseCase: ArchiveTherapyContentUseCase by inject()
+    // Managed therapy-asset uploads
+    val requestTherapyAssetUploadUseCase: RequestTherapyAssetUploadUseCase by inject()
 
     routing {
         root()
@@ -155,6 +158,9 @@ fun Application.configureRouting() {
                 returnTherapyContentToDraftUseCase = returnTherapyContentToDraftUseCase,
                 publishTherapyContentUseCase = publishTherapyContentUseCase,
                 archiveTherapyContentUseCase = archiveTherapyContentUseCase,
+            )
+            managedTherapyAssetUploadRoutes(
+                requestTherapyAssetUploadUseCase = requestTherapyAssetUploadUseCase,
             )
         }
     }

@@ -32,6 +32,11 @@ import com.simbiri.domain.repository.UserRegistrationRepository
 import com.simbiri.domain.security.RefreshTokenIssuer
 import com.simbiri.domain.security.RefreshTokenSettings
 import com.simbiri.domain.repository.AuthenticationCredentialMutationRepository
+import com.simbiri.data.storage.S3TherapyAssetUploadGateway
+import com.simbiri.domain.storage.TherapyAssetUploadGateway
+import software.amazon.awssdk.regions.Region
+import software.amazon.awssdk.services.s3.presigner.S3Presigner
+
 /**
  * Contains only infrastructure level dependencies
  */
@@ -74,4 +79,19 @@ val dataModule = module {
 
     // therapy repo
     singleOf(::TherapyContentRepoImpl).bind<TherapyContentRepository>()
+    // s3 asset uploads for modules
+    single {
+        val regionName = System.getenv("AWS_REGION") ?: "us-east-1"
+        S3Presigner.builder()
+            .region(Region.of(regionName))
+            .build()
+    }
+
+    single<TherapyAssetUploadGateway> {
+        S3TherapyAssetUploadGateway(
+            bucketName = System.getenv("ARTNOVAX_THERAPY_ASSET_BUCKET").orEmpty(),
+            presigner = get<S3Presigner>(),
+            clock = get(),
+        )
+    }
 }
